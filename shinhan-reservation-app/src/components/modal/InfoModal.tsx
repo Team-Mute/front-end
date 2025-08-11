@@ -62,7 +62,7 @@ const ModalContainer = styled.div`
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  padding: 0 72px;
+  padding: 0 50px;
 `;
 
 const TitleWrapper = styled.div`
@@ -78,7 +78,6 @@ const Title = styled.h2`
 `;
 
 const SubtitleWrapper = styled.div`
-  padding: 0 16px; // 양옆에 적당한 여백
   text-align: center; // 가운데 정렬
   white-space: pre-wrap; // 줄바꿈(\n) 적용
   word-break: break-word; // 긴 단어도 줄바꿈 가능
