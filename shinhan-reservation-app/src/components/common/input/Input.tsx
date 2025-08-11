@@ -4,33 +4,45 @@ import colors from "@/styles/theme";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   errorMessage?: string;
+  infoMessage?: string;
+  width?: string;
 }
 
-const Input = ({ errorMessage, ...props }: Props) => {
+const Input = ({
+  errorMessage,
+  infoMessage,
+  width = "353px",
+  ...props
+}: Props) => {
   return (
     <Wrapper>
-      <StyledInput {...props} isError={!!errorMessage} />
-      {errorMessage && <ErrorText>{errorMessage}</ErrorText>}
+      <StyledInput {...props} width={width} isError={!!errorMessage} />
+      {errorMessage && <Text isError={!!errorMessage}>{errorMessage}</Text>}
+      {!errorMessage && infoMessage && (
+        <Text isError={!!errorMessage}>{infoMessage}</Text>
+      )}
     </Wrapper>
   );
 };
 
 export default Input;
 
+const height = "46px";
+
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
 `;
 
-const ErrorText = styled.span`
-  color: #ff4d4f;
+const Text = styled.span<{ isError: boolean }>`
+  color: ${({ isError }) => (isError ? "#ff4d4f" : colors.graycolor100)};
   font-size: 12px;
   margin-top: 4px;
 `;
 
-const StyledInput = styled.input<{ isError: boolean }>`
-  width: 353px;
-  height: 46px;
+const StyledInput = styled.input<{ isError: boolean; width: string }>`
+  width: ${({ width }) => width};
+  height: ${height};
   padding-left: 12px;
   background-color: #ffffff;
   border: 1px solid ${({ isError }) => (isError ? "#ff4d4f" : "#e8e9e9")};

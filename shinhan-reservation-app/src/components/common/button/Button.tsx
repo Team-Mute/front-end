@@ -20,7 +20,7 @@ const Button = styled.button<ButtonProps>`
     isActive ? colors.maincolor : colors.graycolor10};
   color: ${({ isActive }) => (isActive ? "white" : colors.graycolor100)};
   cursor: ${({ isActive }) => (isActive ? "pointer" : "default")};
-  font-size: 16px;
+  font-size: 14px;
   transition: background-color 0.3s ease;
 
   &:disabled {
