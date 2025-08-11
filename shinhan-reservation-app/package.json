@@ -1,5 +1,4 @@
 {
-  "packageManager": "pnpm@10.14.0",
   "name": "shinhan-reservation-app",
   "version": "0.1.0",
   "private": true,
