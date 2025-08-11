@@ -5,6 +5,7 @@ import styled from "@emotion/styled";
 import Input from "@/components/common/input/Input";
 import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,18 +18,12 @@ export default function LoginPage() {
     const isValid = /\S+@\S+\.\S+/.test(value);
     setIsEmailValid(isValid); // ✅ 여기 추가
 
-    setEmailError(
-      !value
-        ? "아이디를 입력해주세요."
-        : isValid
-        ? ""
-        : "이메일 형식이 맞지 않습니다."
-    );
+    setEmailError(!value ? "" : isValid ? "" : "이메일 형식이 맞지 않습니다.");
   };
 
-  const validatePassword = (value: string) => {
-    setPasswordError(!value ? "비밀번호를 입력해주세요." : "");
-  };
+  //   const validatePassword = (value: string) => {
+  //     setPasswordError(!value ? "비밀번호를 입력해주세요." : "");
+  //   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -39,7 +34,7 @@ export default function LoginPage() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
-    validatePassword(value);
+    // validatePassword(value);
   };
 
   return (
@@ -78,7 +73,10 @@ export default function LoginPage() {
       </LoginForm>
 
       <BottomText>
-        아직 회원이 아니신가요? <JoinButton type="button">회원가입</JoinButton>
+        아직 회원이 아니신가요?
+        <SignUpButton type="button" as={Link} href="/signup">
+          회원가입
+        </SignUpButton>
       </BottomText>
     </Container>
   );
@@ -144,7 +142,7 @@ const BottomText = styled.div`
   color: ${colors.graycolor50};
 `;
 
-const JoinButton = styled.button`
+const SignUpButton = styled.a`
   background: none;
   border: none;
   color: ${colors.graycolor100}
