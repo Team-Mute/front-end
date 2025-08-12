@@ -6,6 +6,8 @@ import Input from "@/components/common/input/Input";
 import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
 import Link from "next/link";
+import { login } from "@/lib/api/auth";
+import { useAuthStore } from "@/store/authStore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +15,8 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
+
+  const { accessToken } = useAuthStore();
 
   const validateEmail = (value: string) => {
     const isValid = /\S+@\S+\.\S+/.test(value);
@@ -35,6 +39,15 @@ export default function LoginPage() {
     const value = e.target.value;
     setPassword(value);
     // validatePassword(value);
+  };
+
+  const handleLogin = async () => {
+    try {
+      await login(email, password);
+      console.log("로그인 성공!", accessToken);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -67,7 +80,11 @@ export default function LoginPage() {
         </InputWrapper>
 
         <FindPasswordButton type="button">비밀번호 찾기</FindPasswordButton>
-        <Button type="submit" isActive={isEmailValid && !!password}>
+        <Button
+          type="submit"
+          isActive={isEmailValid && !!password}
+          onClick={handleLogin}
+        >
           로그인
         </Button>
       </LoginForm>
