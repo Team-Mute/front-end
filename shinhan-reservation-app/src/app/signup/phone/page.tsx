@@ -6,7 +6,7 @@ import Input from "@/components/common/input/Input";
 import Button from "@/components/common/button/Button";
 import { useRouter } from "next/navigation";
 import colors from "@/styles/theme";
-import SelectBox from "@/components/common/Selectbox";
+import SelectBox from "@/components/common/selectbox/Selectbox";
 import { countryCodes } from "@/constants/countryCodes";
 import InfoModal from "@/components/modal/InfoModal";
 

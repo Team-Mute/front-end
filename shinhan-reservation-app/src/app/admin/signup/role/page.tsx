@@ -5,7 +5,7 @@ import styled from "@emotion/styled";
 import Button from "@/components/common/button/Button";
 import { useRouter } from "next/navigation";
 import InfoModal from "@/components/modal/InfoModal";
-import SelectBox2 from "@/components/common/Selectbox2";
+import SelectBox2 from "@/components/common/selectbox/Selectbox2";
 
 export default function SignupRolePage() {
   const router = useRouter();
