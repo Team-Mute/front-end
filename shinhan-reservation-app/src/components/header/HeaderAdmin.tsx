@@ -31,7 +31,7 @@ export default function HeaderAdmin() {
   return (
     <>
       <HeaderWrapper>
-        <Link href="/admin">
+        <Link href="/admin/dashboard">
           <Logo src="/shinhanLogo.png" alt="로고" />
         </Link>
         <HamburgerButton onClick={() => setMenuOpen(true)}>
