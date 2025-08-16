@@ -6,7 +6,9 @@ const colors = {
   graycolor5: "#F3F4F4",
   graycolor0: "#FFFFFF",
   maincolor: "#0046FF",
+  maincolor5: "#F2F6FF",
   negativecolor: "#FF3A48",
+  sementicFillStrong: "#191F28",
 };
 
 export default colors;
