@@ -1,54 +1,132 @@
 "use client";
 
 import styled from "@emotion/styled";
+import { useState } from "react";
+import { VscThreeBars } from "react-icons/vsc";
+import { IoClose } from "react-icons/io5";
+import Link from "next/link";
+import colors from "@/styles/theme";
 
+// 아이콘
+import DashboardIcon from "@/styles/icons/dashboard.svg";
+import ReservationIcon from "@/styles/icons/reservation.svg";
+import SpaceIcon from "@/styles/icons/space.svg";
+import ReportIcon from "@/styles/icons/report.svg";
+import LogoutIcon from "@/styles/icons/logout.svg";
+
+import ThreeLine from "@/styles/icons/threeline.svg";
+
+type MenuItem = { label: string; path: string; icon: React.FC };
+
+const menuItems: MenuItem[] = [
+  { label: "대시보드", path: "/admin/dashboard", icon: DashboardIcon },
+  { label: "예약관리", path: "/admin/reservation", icon: ReservationIcon },
+  { label: "공간관리", path: "/admin/space", icon: SpaceIcon },
+  { label: "통계 및 보고서", path: "/admin/report", icon: ReportIcon },
+];
+
+export default function HeaderAdmin() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <>
+      <HeaderWrapper>
+        <Link href="/admin">
+          <Logo src="/shinhanLogo.png" alt="로고" />
+        </Link>
+        <HamburgerButton onClick={() => setMenuOpen(true)}>
+          <ThreeLine />
+        </HamburgerButton>
+      </HeaderWrapper>
+
+      {/* 모바일 메뉴 오버레이 */}
+      {menuOpen && (
+        <Overlay>
+          <CloseButton onClick={() => setMenuOpen(false)}>
+            <IoClose size={28} />
+          </CloseButton>
+          <MenuList>
+            {menuItems.map(({ label, path, icon: Icon }) => (
+              <MenuLink
+                key={path}
+                href={path}
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon />
+                {label}
+              </MenuLink>
+            ))}
+            <MenuLink href={"/"}>
+              <LogoutIcon />
+              로그아웃
+            </MenuLink>
+          </MenuList>
+        </Overlay>
+      )}
+    </>
+  );
+}
+
+// --- styled ---
 const HeaderWrapper = styled.header`
   width: 100%;
-  height: 60px;
+  height: var(--header-height);
   background-color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 60px;
-`;
-
-const Left = styled.div`
-  display: flex;
-  align-items: center;
+  padding: 0 20px;
 `;
 
 const Logo = styled.img`
-  height: 20px; // 적절한 크기로 조절
+  height: 20px;
 `;
 
-const Right = styled.div`
-  display: flex;
-  gap: 16px;
-  background-color: white;
-`;
-
-const NavButton = styled.a`
+const HamburgerButton = styled.button`
   background: none;
   border: none;
-  color: black;
-  font-size: 16px;
-  font-weight: 500;
   cursor: pointer;
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+  }
 `;
 
-import Link from "next/link";
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: white;
+  z-index: 1000;
+  padding: 1rem;
+`;
 
-const HeaderAdmin = () => {
-  return (
-    <HeaderWrapper>
-      <Left>
-        <Link href="/admin">
-          <Logo src="/shinhanLogo.png" alt="로고" />
-        </Link>
-      </Left>
-      <Right></Right>
-    </HeaderWrapper>
-  );
-};
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+`;
 
-export default HeaderAdmin;
+const MenuList = styled.nav`
+  margin-top: 4rem;
+  display: flex;
+  flex-direction: column;
+`;
+
+const MenuLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 16px;
+  color: ${colors.graycolor100};
+  text-decoration: none;
+  height: 3.5rem;
+  //   background-color: beige;
+  padding-left: 1rem;
+`;

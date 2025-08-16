@@ -4,6 +4,9 @@ import { css } from "@emotion/react";
 import colors from "./theme";
 
 export const globalStyles = css`
+  :root {
+    --header-height: 3.75rem;
+  }
   @font-face {
     font-family: "Pretendard";
     src: url("/fonts/Pretendard/Pretendard-Thin.woff2") format("woff2");
