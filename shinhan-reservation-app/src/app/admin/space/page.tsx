@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSpaceStore } from "@/store/spaceStore";
 import SearchBar from "@/components/Searchbar";
 import styled from "@emotion/styled";
 import IconButton from "@/components/common/button/IconButton";
 import SpaceCard from "./components/SpaceCard";
+import SpaceFormModal from "./components/SpaceFormModal/index";
 
 const options = [
   { value: "all", label: "전체" },
@@ -12,76 +14,20 @@ const options = [
   { value: "manager", label: "담당자" },
 ];
 
-// 예시 데이터
-const spaceList = [
-  {
-    id: 1,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "서울 회의실 A",
-    region: "서울 강남구",
-    manager: "홍길동",
-    isPrivate: true,
-    isDraft: false,
-  },
-  {
-    id: 2,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "부산 세미나실 B",
-    region: "부산 해운대구",
-    manager: "김철수",
-    isPrivate: false,
-    isDraft: true,
-  },
-  {
-    id: 3,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "대전 컨퍼런스룸 C",
-    region: "대전 서구",
-    manager: "이영희",
-    isPrivate: false,
-    isDraft: false,
-  },
-  {
-    id: 4,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "대전 컨퍼런스룸 C",
-    region: "대전 서구",
-    manager: "김뮤트",
-    isPrivate: false,
-    isDraft: false,
-  },
-  {
-    id: 5,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "대전 컨퍼런스룸 C",
-    region: "대전 서구",
-    manager: "김뮤트",
-    isPrivate: false,
-    isDraft: false,
-  },
-  {
-    id: 6,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "대전 컨퍼런스룸 C",
-    region: "대전 서구",
-    manager: "김뮤트",
-    isPrivate: false,
-    isDraft: false,
-  },
-  {
-    id: 7,
-    imageUrl: "https://picsum.photos/600/400",
-    title: "대전 컨퍼런스룸 C",
-    region: "대전 서구",
-    manager: "김뮤트",
-    isPrivate: false,
-    isDraft: false,
-  },
-];
-
 export default function DashboardPage() {
-  const [filter, setFilter] = React.useState("all");
-  const [keyword, setKeyword] = React.useState("");
+  const { spaces, removeSpace, filter, setFilter, keyword, setKeyword } =
+    useSpaceStore();
+  const filteredSpaces = spaces.filter((space) => {
+    if (filter === "all") return true;
+    if (filter === "space") return space.title.includes(keyword);
+    if (filter === "manager") return space.manager.includes(keyword);
+    return true;
+  });
+
+  const [editingSpace, setEditingSpace] = useState<(typeof spaces)[0] | null>(
+    null
+  );
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const [remWidth, setRemWidth] = useState(0);
 
@@ -105,7 +51,12 @@ export default function DashboardPage() {
     <Container>
       <TitleWrapper>
         <h1>공간 관리</h1>
-        <IconButton label="새 공간 등록" />
+        <div style={{ width: "6.6rem" }}>
+          <IconButton
+            label="새 공간 등록"
+            onClick={() => setIsCreateOpen(true)}
+          />
+        </div>
       </TitleWrapper>
       <SearchBarWrapper>
         <SearchBar
@@ -119,7 +70,7 @@ export default function DashboardPage() {
       </SearchBarWrapper>
 
       <CardContainer>
-        {spaceList.map((space) => (
+        {filteredSpaces.map((space) => (
           <SpaceCard
             key={space.id}
             imageUrl={space.imageUrl}
@@ -128,11 +79,39 @@ export default function DashboardPage() {
             manager={space.manager}
             isPrivate={space.isPrivate}
             isDraft={space.isDraft}
+            onEdit={() => setEditingSpace(space)}
           />
         ))}
       </CardContainer>
       {/* 뷰포트 rem 표시 */}
       {/* <ViewportBadge>{remWidth.toFixed(2)} rem</ViewportBadge> */}
+
+      {/* 등록 모달 */}
+      {isCreateOpen && (
+        <SpaceFormModal
+          isOpen
+          onClose={() => setIsCreateOpen(false)}
+          title="새 공간 등록"
+          initialData={undefined} // 등록은 초기값 없음
+          onSubmit={(data) => {
+            console.log("새 공간 등록", data);
+            setIsCreateOpen(false);
+          }}
+        />
+      )}
+
+      {editingSpace && (
+        <SpaceFormModal
+          isOpen={!!editingSpace}
+          onClose={() => setEditingSpace(null)}
+          initialData={editingSpace ?? undefined} // 여기서 해당 공간 데이터(id 포함)를 넘김
+          title="공간 수정"
+          onSubmit={(updatedData) => {
+            console.log("수정된 데이터:", updatedData);
+            setEditingSpace(null);
+          }}
+        />
+      )}
     </Container>
   );
 }
