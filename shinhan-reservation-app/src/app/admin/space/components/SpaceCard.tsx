@@ -3,6 +3,7 @@
 import styled from "@emotion/styled";
 import { FaMapMarkerAlt } from "react-icons/fa"; // 지역 아이콘 예시
 import colors from "@/styles/theme";
+import { on } from "events";
 
 interface SpaceCardProps {
   imageUrl: string;
@@ -11,6 +12,9 @@ interface SpaceCardProps {
   manager: string;
   isPrivate?: boolean; // 비공개 여부
   isDraft?: boolean; // 임시저장 여부
+  onEdit?: () => void; // 수정
+  onClone?: () => void; // 복제
+  onDelete?: () => void; // 삭제
 }
 
 const SpaceCard = ({
@@ -20,6 +24,9 @@ const SpaceCard = ({
   manager,
   isPrivate,
   isDraft,
+  onEdit,
+  onClone,
+  onDelete,
 }: SpaceCardProps) => {
   return (
     <Container>
@@ -45,16 +52,22 @@ const SpaceCard = ({
 
       {/* 5. 버튼 */}
       <ButtonGroup>
-        <ActionButton flex={3} bg={colors.maincolor5}>
+        <ActionButton flex={3} bg={colors.maincolor5} onClick={onEdit}>
           수정하기
         </ActionButton>
-        <ActionButton flex={3} bg={colors.maincolor5} borderLeft={true}>
+        <ActionButton
+          flex={3}
+          bg={colors.maincolor5}
+          borderLeft={true}
+          onClick={onClone}
+        >
           복제하기
         </ActionButton>
         <ActionButton
           flex={2}
           bg={colors.graycolor5}
           text={colors.graycolor100}
+          onClick={onDelete}
         >
           삭제
         </ActionButton>
