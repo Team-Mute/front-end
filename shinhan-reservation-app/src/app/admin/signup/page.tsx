@@ -10,6 +10,7 @@ import ScrollModal from "@/components/modal/ScrollModal";
 import { useRouter } from "next/navigation";
 
 import { TERMS_OF_SERVICE_HTML, PRIVACY_POLICY_HTML } from "@/constants/terms";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,14 +28,38 @@ export default function SignupPage() {
 
   // 입력 값
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  // const [password, setPassword] = useState("");
+  // const [confirmPassword, setConfirmPassword] = useState("");
 
   const [emailErrorMsg, setEmailErrorMsg] = useState("");
   const [emailInfoMsg, setEmailInfoMsg] = useState(
     "정확한 이메일 주소를 입력해주세요."
   );
+
+  const [phoneErrorMsg, setPhoneErrorMsg] = useState("");
+  const [phoneInfoMsg, setPhoneInfoMsg] =
+    useState("전화번호는 숫자만 적어주세요.");
+
+  const setAdminSignUpData = useAdminAuthStore(
+    (state) => state.setAdminSignUpData
+  );
+
+  // 버튼 클릭 핸들러
+  const handleSignUpClick = () => {
+    // 1. 입력한 정보를 store에 저장
+    setAdminSignUpData({
+      roleId: 0,
+      regionName: "",
+      userEmail: email,
+      userName: name,
+      userPhone: phone,
+    });
+
+    // 2. 권한 생성 페이지로 이동
+    router.push("/admin/signup/role");
+  };
 
   // 이메일 검증
   const validateEmail = (value: string) => {
@@ -43,6 +68,21 @@ export default function SignupPage() {
     if (isValid) {
       setEmailInfoMsg("");
     }
+  };
+
+  // 휴대번호 검증
+  const validatePhone = (value: string) => {
+    const isValid = /^\d{10,11}$/.test(value);
+    setPhoneErrorMsg(!isValid ? "전화번호는 숫자만 적어주세요" : "");
+    if (isValid) {
+      setPhoneInfoMsg("");
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPhone(value);
+    validatePhone(value);
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,14 +111,14 @@ export default function SignupPage() {
     // 에러 메시지가 없는지 확인
 
     return Boolean(
-      name &&
-        email &&
-        password &&
-        confirmPassword &&
-        errors.password === "" &&
-        errors.confirmPassword === "" &&
-        termsOfService &&
-        privacyPolicy
+      name && email && phone
+      // password &&
+      // confirmPassword &&
+      // errors.password === "" &&
+      // errors.confirmPassword === "" &&
+
+      // termsOfService &&
+      // privacyPolicy
     );
   };
 
@@ -89,36 +129,36 @@ export default function SignupPage() {
     setIsAllAgreed(allChecked);
   }, [termsOfService, privacyPolicy]);
 
-  // 비밀번호 검증
-  const validatePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPassword(value);
+  // // 비밀번호 검증
+  // const validatePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = e.target.value;
+  //   setPassword(value);
 
-    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])/;
+  //   const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])/;
 
-    if (value.length < 8 || !passwordRegex.test(value)) {
-      setErrors((prev) => ({
-        ...prev,
-        password: "8자 이상, 숫자와 특수문자를 입력해주세요",
-      }));
-    } else {
-      setErrors((prev) => ({
-        ...prev,
-        password: "",
-      }));
-    }
-  };
+  //   if (value.length < 8 || !passwordRegex.test(value)) {
+  //     setErrors((prev) => ({
+  //       ...prev,
+  //       password: "8자 이상, 숫자와 특수문자를 입력해주세요",
+  //     }));
+  //   } else {
+  //     setErrors((prev) => ({
+  //       ...prev,
+  //       password: "",
+  //     }));
+  //   }
+  // };
 
-  // 비밀번호 확인 검증
-  useEffect(() => {
-    if (confirmPassword) {
-      setErrors((prev) => ({
-        ...prev,
-        confirmPassword:
-          password === confirmPassword ? "" : "비밀번호가 일치하지 않습니다",
-      }));
-    }
-  }, [password, confirmPassword]);
+  // // 비밀번호 확인 검증
+  // useEffect(() => {
+  //   if (confirmPassword) {
+  //     setErrors((prev) => ({
+  //       ...prev,
+  //       confirmPassword:
+  //         password === confirmPassword ? "" : "비밀번호가 일치하지 않습니다",
+  //     }));
+  //   }
+  // }, [password, confirmPassword]);
 
   return (
     <Container>
@@ -133,6 +173,15 @@ export default function SignupPage() {
         </Wrapper>
         <Wrapper>
           <Input
+            placeholder="전화번호"
+            infoMessage={!phoneErrorMsg ? phoneInfoMsg : undefined}
+            value={phone}
+            onChange={handlePhoneChange}
+            errorMessage={phoneErrorMsg}
+          />
+        </Wrapper>
+        <Wrapper>
+          <Input
             placeholder="이메일"
             infoMessage={!emailErrorMsg ? emailInfoMsg : undefined}
             value={email}
@@ -140,7 +189,7 @@ export default function SignupPage() {
             errorMessage={emailErrorMsg}
           />
         </Wrapper>
-        <Wrapper>
+        {/* <Wrapper>
           <Input
             type="password"
             value={password}
@@ -149,8 +198,8 @@ export default function SignupPage() {
             errorMessage={errors.password}
             autoComplete="off"
           />
-        </Wrapper>
-        <Wrapper>
+        </Wrapper> */}
+        {/* <Wrapper>
           <Input
             type="password"
             value={confirmPassword}
@@ -159,9 +208,9 @@ export default function SignupPage() {
             errorMessage={errors.confirmPassword}
             autoComplete="off"
           />
-        </Wrapper>
+        </Wrapper> */}
 
-        <CheckboxWrapper>
+        {/* <CheckboxWrapper>
           <Checkbox
             checked={isAllAgreed}
             onChange={handleAllAgreeChange}
@@ -196,15 +245,13 @@ export default function SignupPage() {
               setIsTermsOpen(true);
             }}
           />
-        </CheckboxWrapper>
+        </CheckboxWrapper> */}
 
         <ButtonWrapper>
           <Button
             type="button"
             isActive={isFormValid()}
-            onClick={() => {
-              router.push("/admin/signup/role");
-            }}
+            onClick={handleSignUpClick}
           >
             다음
           </Button>

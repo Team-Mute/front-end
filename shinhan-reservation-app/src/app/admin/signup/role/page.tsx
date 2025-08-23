@@ -6,6 +6,9 @@ import Button from "@/components/common/button/Button";
 import { useRouter } from "next/navigation";
 import InfoModal from "@/components/modal/InfoModal";
 import SelectBox2 from "@/components/common/selectbox/Selectbox2";
+import { adminSignUpApi } from "@/lib/api/adminAuth";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
+import Loading from "@/components/common/Loading";
 
 export default function SignupRolePage() {
   const router = useRouter();
@@ -23,15 +26,66 @@ export default function SignupRolePage() {
 
   // 권한
   const roles = [
-    { label: "1차 승인자", value: "1차 승인자" },
-    { label: "2차 승인자", value: "2차 승인자" },
+    { label: "1차 승인자", value: "2" },
+    { label: "2차 승인자", value: "1" },
+    { label: "마스터", value: "0" },
   ];
 
   // 회원가입 완료 모달
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 로딩
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 회원가입 성공 여부
+  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
+
+  const adminSignUpData = useAdminAuthStore((state) => state.adminSignUpData);
+  const clearAdminSignUpData = useAdminAuthStore(
+    (state) => state.clearAdminSignUpData
+  );
+
+  const handleComplete = async () => {
+    setIsLoading(true);
+
+    try {
+      const updatedAdminSignupData = {
+        ...adminSignUpData,
+        roleId: Number(role),
+        regionName: region,
+      };
+
+      const response = await adminSignUpApi(updatedAdminSignupData);
+      if (response.status === 201) {
+        setInfoTitle("회원가입 완료");
+        setInfoContents("환영합니다!\n이제 공간과 예약 관리를 시작해보세요.");
+        setIsSignupSuccess(true); // 성공 플래그
+        setIsModalOpen(true);
+        clearAdminSignUpData();
+      }
+    } catch (error: any) {
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        setInfoTitle("안내");
+        setInfoContents(error.response.data.message);
+        setIsModalOpen(true);
+      } else {
+        setInfoTitle("안내");
+        setInfoContents("회원가입 중 오류가 발생했습니다.");
+        setIsSignupSuccess(false); // 실패 플래그
+
+        setIsModalOpen(true);
+      }
+      console.log("회원 생성 완료!", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Container>
+      <Loading isLoading={isLoading} />
       <TitleText>관리할 지역과 권한을 설정하세요</TitleText>
       <RoleForm>
         <SelectBox2
@@ -52,9 +106,7 @@ export default function SignupRolePage() {
           <Button
             type="button"
             isActive={!!region && !!role}
-            onClick={() => {
-              setIsModalOpen(true);
-            }}
+            onClick={handleComplete}
           >
             회원가입 완료
           </Button>
@@ -63,11 +115,14 @@ export default function SignupRolePage() {
 
       <InfoModal
         isOpen={isModalOpen}
-        title={"회원가입 완료!"}
-        subtitle={"환영합니다!\n이제 공간과 예약 관리를 시작해보세요."}
+        title={infoTitle}
+        subtitle={infoContents}
         onClose={() => {
           setIsModalOpen(false);
-          router.push("/admin");
+
+          if (isSignupSuccess) {
+            router.push("/admin/signup");
+          }
         }}
       ></InfoModal>
     </Container>
