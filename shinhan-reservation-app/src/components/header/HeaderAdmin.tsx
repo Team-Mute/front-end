@@ -13,8 +13,12 @@ import ReservationIcon from "@/styles/icons/reservation.svg";
 import SpaceIcon from "@/styles/icons/space.svg";
 import ReportIcon from "@/styles/icons/report.svg";
 import LogoutIcon from "@/styles/icons/logout.svg";
-
+import AddUserIcon from "@/styles/icons/adduser.svg";
 import ThreeLine from "@/styles/icons/threeline.svg";
+
+import { useRouter } from "next/navigation";
+import { adminLogoutApi } from "@/lib/api/adminAuth";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
 
 type MenuItem = { label: string; path: string; icon: React.FC };
 
@@ -27,6 +31,18 @@ const menuItems: MenuItem[] = [
 
 export default function HeaderAdmin() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { adminAccessToken } = useAdminAuthStore();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await adminLogoutApi(); // 로그아웃 API 호출
+      setMenuOpen(false);
+      router.push("/admin/login"); // 로그인 페이지로 이동
+    } catch (err) {
+      console.error("로그아웃 실패", err);
+    }
+  };
 
   return (
     <>
@@ -34,9 +50,11 @@ export default function HeaderAdmin() {
         <Link href="/admin/dashboard">
           <Logo src="/shinhanLogo.png" alt="로고" />
         </Link>
-        <HamburgerButton onClick={() => setMenuOpen(true)}>
-          <ThreeLine />
-        </HamburgerButton>
+        {adminAccessToken && (
+          <HamburgerButton onClick={() => setMenuOpen(true)}>
+            <ThreeLine />
+          </HamburgerButton>
+        )}
       </HeaderWrapper>
 
       {/* 모바일 메뉴 오버레이 */}
@@ -56,7 +74,11 @@ export default function HeaderAdmin() {
                 {label}
               </MenuLink>
             ))}
-            <MenuLink href={"/"}>
+            <MenuLink href="/admin/signup">
+              <AddUserIcon />
+              회원가입
+            </MenuLink>
+            <MenuLink href={"/"} onClick={handleLogout}>
               <LogoutIcon />
               로그아웃
             </MenuLink>
