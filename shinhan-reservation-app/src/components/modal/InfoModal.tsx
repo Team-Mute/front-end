@@ -4,7 +4,7 @@ import colors from "@/styles/theme";
 import Button from "../common/button/Button";
 import { IoCloseOutline } from "react-icons/io5";
 import Input from "../common/input/Input";
-import { searchCompany } from "@/hooks/searchCompany";
+import { useSearchCompany } from "@/hooks/useSearchCompany";
 
 interface ScrollModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const InfoModal = ({ isOpen, onClose, title, subtitle }: ScrollModalProps) => {
 
 export default InfoModal;
 
-const maxWidth = "353px";
+const maxWidth = "22rem";
 
 const Overlay = styled.div`
   position: fixed;
@@ -54,7 +54,7 @@ const Overlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-  max-width: ${maxWidth};
+  width: ${maxWidth};
   background-color: white;
   border-radius: 8px;
   display: flex;
@@ -62,19 +62,22 @@ const ModalContainer = styled.div`
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  padding: 0 50px;
+  padding: 2.25rem 3.25rem;
 `;
 
 const TitleWrapper = styled.div`
   display: flex;
   align-items: center;
-  margin-top: 40px;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 `;
 
 const Title = styled.h2`
   font-weight: 600;
-  font-size: 18px;
+  font-size: 1.125rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 145%; /* 1.63125rem */
+  letter-spacing: -0.01238rem;
 `;
 
 const SubtitleWrapper = styled.div`
@@ -86,15 +89,17 @@ const SubtitleWrapper = styled.div`
 `;
 
 const SubTitle = styled.h5`
+  font-size: 0.875rem;
+  font-style: normal;
   font-weight: 500;
-  font-size: 14px;
+  line-height: 145%; /* 1.26875rem */
+  letter-spacing: -0.00963rem;
   color: ${colors.graycolor50};
 `;
 
 const ButtonWrapper = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 24px;
-  margin-bottom: 40px;
+  margin-top: 1.5rem;
   width: 100%;
 `;
