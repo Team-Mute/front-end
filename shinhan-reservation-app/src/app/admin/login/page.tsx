@@ -6,6 +6,11 @@ import Input from "@/components/common/input/Input";
 import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
 import Link from "next/link";
+import Loading from "@/components/common/Loading";
+import { adminLoginApi } from "@/lib/api/adminAuth";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
+import { useRouter } from "next/navigation";
+import InfoModal from "@/components/modal/InfoModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +18,14 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  // 모달 안내사항
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const validateEmail = (value: string) => {
     const isValid = /\S+@\S+\.\S+/.test(value);
@@ -37,8 +50,28 @@ export default function LoginPage() {
     // validatePassword(value);
   };
 
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const response = await adminLoginApi(email, password);
+
+      if (response.status === 200) {
+        router.push("/admin/dashboard");
+      }
+    } catch (err: any) {
+      if (err.status === 401) {
+        setInfoTitle("안내");
+        setInfoContents("로그인에 실패했습니다.");
+        setIsModalOpen(true);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Container>
+      <Loading isLoading={isLoading} />
       <GreetingText>
         안녕하세요,
         <br />
@@ -67,17 +100,29 @@ export default function LoginPage() {
         </InputWrapper>
 
         <FindPasswordButton type="button">비밀번호 찾기</FindPasswordButton>
-        <Button type="submit" isActive={isEmailValid && !!password}>
+        <Button
+          type="submit"
+          isActive={isEmailValid && !!password}
+          onClick={handleLogin}
+        >
           로그인
         </Button>
       </LoginForm>
 
-      <BottomText>
+      {/* <BottomText>
         아직 회원이 아니신가요?
         <SignUpButton type="button" as={Link} href="/admin/signup">
           회원가입
         </SignUpButton>
-      </BottomText>
+      </BottomText> */}
+      <InfoModal
+        isOpen={isModalOpen}
+        title={infoTitle}
+        subtitle={infoContents}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}
+      />
     </Container>
   );
 }

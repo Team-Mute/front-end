@@ -6,8 +6,11 @@ import Input from "@/components/common/input/Input";
 import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
 import Link from "next/link";
-import { login } from "@/lib/api/auth";
+import { loginApi } from "@/lib/api/userAuth";
 import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
+import Loading from "@/components/common/Loading";
+import InfoModal from "@/components/modal/InfoModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,18 +19,20 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
 
-  const { accessToken } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  // 모달 안내사항
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const validateEmail = (value: string) => {
     const isValid = /\S+@\S+\.\S+/.test(value);
-    setIsEmailValid(isValid); // ✅ 여기 추가
+    setIsEmailValid(isValid);
 
     setEmailError(!value ? "" : isValid ? "" : "이메일 형식이 맞지 않습니다.");
   };
-
-  //   const validatePassword = (value: string) => {
-  //     setPasswordError(!value ? "비밀번호를 입력해주세요." : "");
-  //   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -38,20 +43,30 @@ export default function LoginPage() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
-    // validatePassword(value);
   };
 
   const handleLogin = async () => {
+    setIsLoading(true);
     try {
-      await login(email, password);
-      console.log("로그인 성공!", accessToken);
-    } catch (err) {
-      console.error(err);
+      const response = await loginApi(email, password);
+
+      if (response.status === 200) {
+        router.push("/");
+      }
+    } catch (err: any) {
+      if (err.status === 401) {
+        setInfoTitle("안내");
+        setInfoContents("로그인에 실패했습니다.");
+        setIsModalOpen(true);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Container>
+      <Loading isLoading={isLoading} />
       <GreetingText>
         안녕하세요,
         <br />
@@ -95,6 +110,14 @@ export default function LoginPage() {
           회원가입
         </SignUpButton>
       </BottomText>
+      <InfoModal
+        isOpen={isModalOpen}
+        title={infoTitle}
+        subtitle={infoContents}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}
+      />
     </Container>
   );
 }
