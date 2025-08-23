@@ -4,31 +4,67 @@ import Header from "@/components/header/Header";
 import HeaderAdmin from "@/components/header/HeaderAdmin";
 import { Global } from "@emotion/react";
 import { globalStyles } from "@/styles/global";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const router = useRouter();
 
+  const userToken = useAuthStore((state) => state.accessToken);
+  const adminToken = useAdminAuthStore((state) => state.adminAccessToken);
+
+  const [authorized, setAuthorized] = useState(false);
+
   useEffect(() => {
     // 토큰 가져오기 (localStorage, cookie 등)
-    const userToken = true;
-    const adminToken = true;
 
     if (isAdmin) {
       // 관리자 페이지 접근 시
       if (!adminToken) {
         router.replace("/admin/login");
+      } else {
+        setAuthorized(true);
       }
     } else {
       // 사용자 페이지 접근 시
-      if (!userToken && pathname !== "/login" && pathname !== "/signup") {
+      const publicPaths = [
+        "/login",
+        "/signup",
+        "/signup/phone",
+        "/",
+        "/detail",
+      ];
+      if (!userToken && !publicPaths.includes(pathname)) {
         router.replace("/login");
+      } else {
+        setAuthorized(true);
       }
     }
-  }, [pathname, isAdmin, router]);
+  }, [pathname, isAdmin, userToken, adminToken, router]);
+
+  // 토큰 체크가 끝날 때까지 아무것도 렌더링하지 않음
+  const publicAdminPaths = ["/admin/login"];
+
+  const isPublicAdminPath = publicAdminPaths.includes(pathname);
+
+  if (
+    !authorized &&
+    !(isPublicAdminPath || (!isAdmin ? userToken : adminToken))
+  ) {
+    return (
+      <html lang="ko">
+        <body>
+          <Global styles={globalStyles} />
+          {isAdmin ? <HeaderAdmin /> : <Header />}
+          <main></main>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang="ko">
