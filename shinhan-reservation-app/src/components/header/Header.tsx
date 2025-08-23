@@ -5,7 +5,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { VscThreeBars } from "react-icons/vsc";
 import { IoClose } from "react-icons/io5";
-import colors from "@/styles/theme";
+import { useAuthStore } from "@/store/authStore";
+import { logoutApi } from "@/lib/api/userAuth";
+import { useRouter } from "next/navigation";
 
 const menuItemsUser = [
   { label: "마이페이지", path: "/mypage" },
@@ -14,6 +16,17 @@ const menuItemsUser = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { accessToken, clearAuth } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi(); // 로그아웃 API 호출
+      router.push("/login"); // 로그인 페이지로 이동
+    } catch (err) {
+      console.error("로그아웃 실패", err);
+    }
+  };
 
   return (
     <>
@@ -25,13 +38,27 @@ export default function Header() {
         </Left>
         {/* 데스크탑 메뉴 */}
         <Right>
-          {menuItemsUser.map(({ label, path }) => (
-            <NavButton key={path} as={Link} href={path}>
-              {label}
+          {accessToken ? (
+            <NavButton as={Link} href="/mypage">
+              마이페이지
             </NavButton>
-          ))}
+          ) : (
+            <NavButton aria-disabled={true}></NavButton>
+          )}
+          {accessToken ? (
+            <NavButton onClick={handleLogout}>로그아웃</NavButton>
+          ) : (
+            <NavButton
+              onClick={() => {
+                router.push("/login");
+              }}
+            >
+              로그인
+            </NavButton>
+          )}
         </Right>
         {/* 모바일 햄버거 */}
+
         <HamburgerButton onClick={() => setMenuOpen(true)}>
           <VscThreeBars size={24} />
         </HamburgerButton>
@@ -44,7 +71,39 @@ export default function Header() {
             <IoClose size={28} />
           </CloseButton>
           <MenuList>
-            {menuItemsUser.map(({ label, path }) => (
+            {accessToken ? (
+              <MenuLink
+                onClick={() => {
+                  setMenuOpen(false);
+                  // router.push("/mypage");
+                }}
+              >
+                마이페이지
+              </MenuLink>
+            ) : (
+              <></>
+            )}
+            {accessToken ? (
+              <MenuLink
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                로그아웃
+              </MenuLink>
+            ) : (
+              <MenuLink
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/login");
+                }}
+              >
+                로그인
+              </MenuLink>
+            )}
+
+            {/* {menuItemsUser.map(({ label, path }) => (
               <MenuLink
                 key={path}
                 href={path}
@@ -52,7 +111,7 @@ export default function Header() {
               >
                 {label}
               </MenuLink>
-            ))}
+            ))} */}
           </MenuList>
         </Overlay>
       )}
@@ -138,9 +197,10 @@ const MenuList = styled.nav`
   gap: 1.5rem;
 `;
 
-const MenuLink = styled(Link)`
+const MenuLink = styled.div`
   font-size: 18px;
   font-weight: 500;
   color: black;
   text-decoration: none;
+  cursor: pointer;
 `;
