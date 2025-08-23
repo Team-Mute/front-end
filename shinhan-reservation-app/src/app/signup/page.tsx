@@ -7,14 +7,16 @@ import Checkbox from "@/components/common/Checkbox";
 import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
 import ScrollModal from "@/components/modal/ScrollModal";
+
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
 
 import {
   TERMS_OF_SERVICE_HTML,
   PRIVACY_POLICY_HTML,
   LOCATION_BASED_TERMS_HTML,
 } from "@/constants/terms";
-import SearchModal from "@/components/modal/SearchModal";
+import SearchModal from "@/app/signup/SearchModal";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -47,6 +49,26 @@ export default function SignupPage() {
   const [emailInfoMsg, setEmailInfoMsg] = useState(
     "정확한 이메일 주소를 입력해주세요."
   );
+
+  const setSignUpData = useAuthStore((state) => state.setSignUpData);
+
+  // 버튼 클릭 핸들러
+  const handleSignUpClick = () => {
+    // 1. 입력한 정보를 store에 저장
+    setSignUpData({
+      userName: name,
+      userPhone: "", // 아직 입력 전이므로 공백
+      userEmail: email,
+      userPwd: password,
+      companyName: companyName,
+      agreeEmail: emailConsent,
+      agreeSms: smsConsent,
+      agreeLocation: locationService,
+    });
+
+    // 2. 폰 번호 인증 페이지로 이동
+    router.push("/signup/phone");
+  };
 
   // 이메일 검증
   const validateEmail = (value: string) => {
@@ -275,9 +297,7 @@ export default function SignupPage() {
           <Button
             type="button"
             isActive={isFormValid()}
-            onClick={() => {
-              router.push("/signup/phone");
-            }}
+            onClick={handleSignUpClick}
           >
             회원가입
           </Button>

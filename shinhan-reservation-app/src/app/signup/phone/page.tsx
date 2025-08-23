@@ -9,6 +9,14 @@ import colors from "@/styles/theme";
 import SelectBox from "@/components/common/selectbox/Selectbox";
 import { countryCodes } from "@/constants/countryCodes";
 import InfoModal from "@/components/modal/InfoModal";
+import {
+  loginApi,
+  sendCodeApi,
+  signUpApi,
+  verifyCodeApi,
+} from "@/lib/api/userAuth";
+import { useAuthStore } from "@/store/authStore";
+import Loading from "@/components/common/Loading";
 
 export default function SignupPhonePage() {
   const router = useRouter();
@@ -17,15 +25,27 @@ export default function SignupPhonePage() {
 
   const [phone, setPhone] = useState("");
   const [isPhoneValid, setIsPhoneValid] = useState(false);
-  // 에러 메시지 (이메일 중복)
-  const [errors, setErrors] = useState({});
+
+  const [infoMsg, setInfoMsg] = useState(
+    "인증코드가 발송되었습니다. 3분 이내에 입력해주세요."
+  );
+  // 에러 메시지 (인증번호 불일치)
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [showVerification, setShowVerification] = useState(false);
 
   const [code, setCode] = useState("");
 
-  // 회원가입 완료 모달
+  // 안내 모달
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 로딩 (인증번호 보내기, 인증하기)
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  // 회원가입 성공 여부
+  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
 
   // 이메일 검증
   const validatePhone = (value: string) => {
@@ -39,34 +59,119 @@ export default function SignupPhonePage() {
     validatePhone(value);
   };
 
+  // 전화번호 포맷팅 함수 (숫자 -> 010-1234-1234)
+  const formatPhoneNumber = (phoneNumber: string) => {
+    if (phoneNumber.length === 10) {
+      // 10자리: 010123456 -> 010-123-4567
+      return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(
+        3,
+        6
+      )}-${phoneNumber.slice(6)}`;
+    } else if (phoneNumber.length === 11) {
+      // 11자리: 01012341234 -> 010-1234-1234
+      return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(
+        3,
+        7
+      )}-${phoneNumber.slice(7)}`;
+    }
+    return phoneNumber;
+  };
+
+  const signUpData = useAuthStore((state) => state.signUpData);
+  const clearSignUpData = useAuthStore((state) => state.clearSignUpData);
+
   // 인증번호 받기 버튼 클릭
   const handleSendCode = async () => {
+    setIsSendingCode(true);
     try {
-      // 서버 API 호출 (이메일 중복 체크 & 인증번호 발송)
-      const isSuccess = true; // 임시 하드코딩
-      if (isSuccess) {
+      // 인증 코드 API 호출
+      const response = await sendCodeApi(phone, countryCode);
+      console.log("인증번호 보내기 API", response);
+
+      if (response.status === 200) {
         setShowVerification(true);
-        //   setEmailError("");
-      } else {
-        //   setEmailError("이미 가입된 이메일입니다.");
       }
-    } catch (err) {
-      // setEmailError("서버 에러가 발생했습니다.");
+    } catch (error) {
+      console.error("인증번호 발송 실패:", error);
+    } finally {
+      setIsSendingCode(false);
     }
   };
 
-  const handleResendCode = () => {
-    console.log("인증번호 재발송");
+  const handleResendCode = async () => {
+    setCode("");
+    try {
+      // 인증 코드 API 호출
+      const response = await sendCodeApi(phone, countryCode);
+
+      if (response.status === 200) {
+        setShowVerification(true);
+      }
+    } catch (error) {
+      console.error("인증번호 재발송 실패:", error);
+    }
   };
 
-  const handleVerifyCode = () => {
-    console.log("인증 시도:", code);
+  const handleVerifyCode = async () => {
+    setIsVerifyingCode(true);
 
-    setIsModalOpen(true);
+    try {
+      // 인증 코드 확인 API 호출
+      const response = await verifyCodeApi(phone, code);
+      console.log("인증코드 확인 API", response);
+      console.log(response.status);
+
+      if (response.status === 200) {
+        console.log("인증코드 확인 성공");
+
+        const updatedSignupData = {
+          ...signUpData,
+          userPhone: formatPhoneNumber(phone),
+        };
+
+        try {
+          const response = await signUpApi(updatedSignupData);
+          console.log("회원가입 API", response);
+
+          if (response.status === 201) {
+            setInfoTitle("회원가입 완료!");
+            setInfoContents(
+              "신한금융희망재단에서 무료로\n공간을 이용해보세요!"
+            );
+            setIsSignupSuccess(true); // 성공 플래그
+
+            setIsModalOpen(true);
+            console.log("회원가입 성공!");
+          }
+        } catch (error: any) {
+          console.error("회원가입 실패:", error);
+          if (error.response?.status === 400 && error.response?.data?.message) {
+            setInfoTitle("안내");
+            setInfoContents(error.response.data.message);
+            setIsModalOpen(true);
+          } else {
+            // 기타 에러 처리 (원한다면 추가)
+            setInfoTitle("안내");
+            setInfoContents("회원가입 중 오류가 발생했습니다.");
+            setIsSignupSuccess(false); // 실패 플래그
+
+            setIsModalOpen(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("인증코드 확인 실패:", error);
+      setErrorMsg("인증번호가 일치하지 않습니다. 다시 시도해주세요.");
+    } finally {
+      setIsVerifyingCode(false);
+    }
   };
 
   return (
     <Container>
+      {/* Loading 컴포넌트 호출 */}
+      <Loading isLoading={isSendingCode || isVerifyingCode} />
+
       <TitleText>가입 마지막 단계입니다</TitleText>
       <PhoneValidateForm>
         <CountryTitle>국가 번호</CountryTitle>
@@ -102,7 +207,8 @@ export default function SignupPhonePage() {
             placeholder="인증번호"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            infoMessage="인증코드가 발송되었습니다. 3분 이내에 입력해주세요."
+            infoMessage={infoMsg}
+            errorMessage={errorMsg}
           />
           <ReSendWrapper>
             <SmallText>인증번호를 받지 못하셨나요?</SmallText>
@@ -118,10 +224,30 @@ export default function SignupPhonePage() {
       )}
       <InfoModal
         isOpen={isModalOpen}
-        title={"회원가입 완료!"}
-        subtitle={"신한금융희망재단에서 무료로\n공간을 이용해보세요!"}
-        onClose={() => {
+        title={infoTitle}
+        subtitle={infoContents}
+        onClose={async () => {
           setIsModalOpen(false);
+
+          if (isSignupSuccess) {
+            try {
+              // 로그인 API 호출
+              const response = await loginApi(
+                signUpData?.userEmail!,
+                signUpData?.userPwd!
+              );
+              if (response.status === 200) {
+                // 메인 화면 이동
+                router.push("/");
+
+                // signUpData 삭제
+                clearSignUpData();
+              }
+            } catch (error) {
+              console.error("자동 로그인 실패", error);
+            }
+          }
+          // 실패면 그냥 모달 닫기만
         }}
       ></InfoModal>
     </Container>
@@ -197,4 +323,17 @@ const ReSendButton = styled.button`
   text-decoration-color: ${colors.graycolor100};
   font-size: 12px;
   cursor: pointer;
+`;
+
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 `;
