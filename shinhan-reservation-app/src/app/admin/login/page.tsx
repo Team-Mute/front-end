@@ -7,7 +7,7 @@ import colors from "@/styles/theme";
 import Button from "@/components/common/button/Button";
 import Link from "next/link";
 import Loading from "@/components/common/Loading";
-import { adminLoginApi } from "@/lib/api/adminAuth";
+import { adminLoginApi } from "@/lib/api/admin/adminAuth";
 import { useAdminAuthStore } from "@/store/adminAuthStore";
 import { useRouter } from "next/navigation";
 import InfoModal from "@/components/modal/InfoModal";
