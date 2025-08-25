@@ -8,6 +8,7 @@ const colors = {
   graycolor0: "#FFFFFF",
   maincolor: "#0046FF",
   maincolor5: "#F2F6FF",
+  maincolor8: "#EBF0FF",
   negativecolor: "#FF3A48",
   sementicFillStrong: "#191F28",
 };
