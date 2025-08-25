@@ -13,7 +13,8 @@ import SpaceIcon from "@/styles/icons/space.svg";
 import ReportIcon from "@/styles/icons/report.svg";
 import LogoutIcon from "@/styles/icons/logout.svg";
 import AdduserIcon from "@/styles/icons/adduser.svg";
-import { adminLogoutApi } from "@/lib/api/adminAuth";
+import { adminLogoutApi } from "@/lib/api/admin/adminAuth";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
 
 type MenuKey = "dashboard" | "reservation" | "space" | "report";
 
@@ -41,10 +42,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // login 페이지일 때는 메뉴바 없이 children만 반환
-  if (pathname.startsWith("/admin/login")) {
-    return <>{children}</>;
-  }
+  const { adminRoleId } = useAdminAuthStore();
 
   const handleLogout = async () => {
     try {
@@ -54,6 +52,11 @@ export default function AdminLayout({
       console.error("로그아웃 실패", err);
     }
   };
+
+  // login 페이지일 때는 메뉴바 없이 children만 반환
+  if (pathname.startsWith("/admin/login")) {
+    return <>{children}</>;
+  }
 
   return (
     <Container>
@@ -73,10 +76,12 @@ export default function AdminLayout({
               </MenuButton>
             );
           })}
-          <MenuButton onClick={() => router.push("/admin/signup")}>
-            <AdduserIcon />
-            계정 만들기
-          </MenuButton>
+          {adminRoleId === 0 && (
+            <MenuButton onClick={() => router.push("/admin/signup")}>
+              <AdduserIcon />
+              계정 만들기
+            </MenuButton>
+          )}
         </MenuList>
 
         <Logout>
