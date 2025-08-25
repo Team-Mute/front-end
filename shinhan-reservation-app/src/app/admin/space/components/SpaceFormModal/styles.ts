@@ -54,7 +54,7 @@ export const Content = styled.div`
 export const Footer = styled.div`
   height: 5.875rem;
   padding: 1rem;
-  border-top: 1px solid ${colors.graycolor20};
+  // border-top: 1px solid ${colors.graycolor20};
   display: flex;
   justify-content: center;
   align-items: center;
