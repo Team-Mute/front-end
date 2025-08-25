@@ -1,24 +1,55 @@
-export type DayCode = "월" | "화" | "수" | "목" | "금" | "토" | "일";
+export interface ClosedDay {
+  from: string; // ISO string
+  to: string;
+}
 
-export interface OperatingTime {
-  day: DayCode;
-  start: string; // "09:00"
-  end: string; // "18:00"
+export interface Operation {
+  day: number; // 1 ~ 7
+  from: string; // HH:mm
+  to: string;
   isOpen: boolean;
 }
 
-export interface SpaceFormData {
-  title: string;
-  capacity: number | null;
-  region: string;
-  address: string;
-  category: string;
-  images: File[]; // 업로드된 원본 파일
-  amenities: string[]; // 편의시설 선택 목록
-  description: string;
-  process: string;
-  rules: string;
-  active: boolean;
-  operatingTimes: OperatingTime[];
-  holidays: { startDate: string; endDate: string }[]; // 휴무일 구간 리스트
+// 공간 등록/수정 타입
+export interface SpacePayload {
+  spaceName: string;
+  spaceDescription: string;
+  spaceCapacity: number;
+  spaceIsAvailable: boolean;
+  regionId: number;
+  categoryId: number;
+  locationId: number;
+  tagNames: string[];
+  userName: string;
+  reservationWay: string;
+  spaceRules: string;
+  operations: Operation[];
+  closedDays: ClosedDay[];
+}
+
+export interface SpaceRequest {
+  space: SpacePayload;
+  images: File[];
+}
+
+// 공간 상세 조회 타입
+export interface SpaceDetailPayload {
+  spaceId: number;
+  spaceName: string;
+  region: { regionId: number; regionName: string };
+  category: { categoryId: number; categoryName: string };
+  location: { locationId: number; addressRoad: string };
+  userName: string;
+  spaceCapacity: number;
+  spaceDescription: string;
+  spaceImageUrl: string;
+  detailImageUrls: string[];
+  tagNames: string[];
+  spaceIsAvailable: boolean;
+  reservationWay: string;
+  spaceRules: string;
+  operations: Operation[];
+  closedDays: ClosedDay[];
+  regDate: string;
+  updDate: string | null;
 }

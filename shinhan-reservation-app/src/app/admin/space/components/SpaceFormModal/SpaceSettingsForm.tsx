@@ -23,13 +23,13 @@ import SelectBox2 from "@/components/common/selectbox/Selectbox2";
 import ChipGroup from "./ChipGroup";
 import { useImgUpload } from "@/hooks/useImgUpload";
 import { CATEGORIES, DEFAULT_AMENITIES, REGIONS } from "@/constants/space";
-import { SpaceFormData } from "@/types/space";
+import { SpacePayload, SpaceRequest } from "@/types/space";
 import Switch from "@/components/common/Switch";
 import RemovableChipGroup from "./RemovableChipGroup";
 
 interface Props {
-  value: SpaceFormData;
-  onChange: (next: SpaceFormData) => void;
+  value: SpaceRequest;
+  onChange: (next: SpaceRequest) => void;
 }
 
 const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
@@ -49,11 +49,11 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
   } = useImgUpload(5);
 
   // 외부 value.images와 동기화
+  // 이미지와 동기화
   React.useEffect(() => {
     if (value.images !== files) {
       onChange({ ...value, images: files });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
 
   // preview URL 캐시 (메모리 누수 방지)
@@ -68,19 +68,20 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
 
   // amenities
   const [options, setOptions] = useState<string[]>(
-    Array.from(new Set([...DEFAULT_AMENITIES, ...value.amenities]))
+    Array.from(new Set([...DEFAULT_AMENITIES, ...value.space.tagNames]))
   );
 
   const [customAmenities, setCustomAmenities] = useState<string[]>([]);
 
   const [newChip, setNewChip] = useState("");
 
+  // 편의시설 toggle
   const toggleAmenity = (chip: string) => {
-    const exists = value.amenities.includes(chip);
+    const exists = value.space.tagNames.includes(chip);
     const next = exists
-      ? value.amenities.filter((c) => c !== chip)
-      : [...value.amenities, chip];
-    onChange({ ...value, amenities: next });
+      ? value.space.tagNames.filter((c) => c !== chip)
+      : [...value.space.tagNames, chip];
+    onChange({ ...value, space: { ...value.space, tagNames: next } });
   };
 
   const addChip = () => {
@@ -193,8 +194,13 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
         <Label>공간 이름</Label>
         <Input
           placeholder="공간명을 입력하세요"
-          value={value.title}
-          onChange={(e) => onChange({ ...value, title: e.target.value })}
+          value={value.space.spaceName}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              space: { ...value.space, spaceName: e.target.value },
+            })
+          }
         />
       </Field>
 
@@ -202,11 +208,14 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
         <Label>수용 인원</Label>
         <Input
           placeholder="수용 인원수를 입력하세요"
-          value={value.capacity ?? ""}
+          value={value.space.spaceCapacity}
           onChange={(e) =>
             onChange({
               ...value,
-              capacity: e.target.value ? Number(e.target.value) : null,
+              space: {
+                ...value.space,
+                spaceCapacity: e.target.value ? Number(e.target.value) : 0,
+              },
             })
           }
         />
@@ -216,13 +225,19 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
         <Label>지점</Label>
         <SelectBox2
           options={REGIONS}
-          value={value.region}
-          onChange={(v: string) => onChange({ ...value, region: v })}
+          value={String(value.space.regionId)}
+          onChange={(v: string) =>
+            onChange({
+              ...value,
+              space: { ...value.space, regionId: Number(v) },
+            })
+          }
         />
         <Input
           placeholder="상세 주소"
-          value={value.address}
-          onChange={(e) => onChange({ ...value, address: e.target.value })}
+          // value={detail?.location.addressRoad ?? ""}
+          readOnly
+          disabled
         />
       </Field>
 
@@ -230,18 +245,23 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
         <Label>공간 카테고리</Label>
         <SelectBox2
           options={CATEGORIES}
-          value={value.category}
-          onChange={(v: string) => onChange({ ...value, category: v })}
+          value={String(value.space.categoryId)}
+          onChange={(v: string) =>
+            onChange({
+              ...value,
+              space: { ...value.space, categoryId: Number(v) },
+            })
+          }
         />
       </Field>
 
       <Field>
         <Label>
-          편의시설 <span>(선택 {value.amenities.length}개)</span>
+          편의시설 <span>(선택 {value.space.tagNames.length}개)</span>
         </Label>
         <ChipGroup
           options={DEFAULT_AMENITIES}
-          selected={value.amenities}
+          selected={value.space.tagNames}
           onToggle={toggleAmenity}
         />
         <Row>
@@ -266,7 +286,10 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
             setCustomAmenities((prev) => prev.filter((c) => c !== chip));
             onChange({
               ...value,
-              amenities: value.amenities.filter((c) => c !== chip),
+              space: {
+                ...value.space,
+                tagNames: value.space.tagNames.filter((c) => c !== chip), // ✅ 올바른 처리
+              },
             });
           }}
         />
@@ -275,24 +298,39 @@ const SpaceSettingsForm: React.FC<Props> = ({ value, onChange }) => {
       <Field>
         <Label>공간 설명</Label>
         <Textarea
-          value={value.description}
-          onChange={(e) => onChange({ ...value, description: e.target.value })}
+          value={value.space.spaceDescription}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              space: { ...value.space, spaceDescription: e.target.value },
+            })
+          }
         />
       </Field>
 
       <Field>
         <Label>예약 과정</Label>
         <Textarea
-          value={value.process}
-          onChange={(e) => onChange({ ...value, process: e.target.value })}
+          value={value.space.reservationWay}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              space: { ...value.space, reservationWay: e.target.value },
+            })
+          }
         />
       </Field>
 
       <Field>
         <Label>이용 수칙</Label>
         <Textarea
-          value={value.rules}
-          onChange={(e) => onChange({ ...value, rules: e.target.value })}
+          value={value.space.spaceRules}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              space: { ...value.space, spaceRules: e.target.value },
+            })
+          }
         />
       </Field>
       <Field>

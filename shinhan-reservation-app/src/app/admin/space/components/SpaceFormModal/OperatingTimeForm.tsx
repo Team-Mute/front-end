@@ -14,7 +14,11 @@ import {
   AutomaticHoliday,
   AddHolidayBtn,
 } from "./styles";
-import { OperatingTime, SpaceFormData } from "@/types/space";
+import {
+  Operation as OperationType,
+  ClosedDay,
+  SpaceRequest,
+} from "@/types/space";
 import SelectBox2 from "@/components/common/selectbox/Selectbox2";
 import colors from "@/styles/theme";
 import { TIME_OPTIONS } from "@/constants/space";
@@ -22,19 +26,20 @@ import CalendarModal from "../CalendarModal";
 import IconButton from "@/components/common/button/IconButton";
 
 interface Props {
-  value: SpaceFormData;
-  onChange: (next: SpaceFormData) => void;
+  value: SpaceRequest;
+  onChange: (next: SpaceRequest) => void;
 }
 
 const OperatingTimeForm: React.FC<Props> = ({ value, onChange }) => {
   const [isCalendarOpen, setCalendarOpen] = useState(false);
 
-  const updateDay = (idx: number, patch: Partial<OperatingTime>) => {
-    const next = [...value.operatingTimes];
+  const updateDay = (idx: number, patch: Partial<OperationType>) => {
+    const next = [...value.space.operations];
     next[idx] = { ...next[idx], ...patch };
 
-    const [startH, startM] = next[idx].start.split(":").map(Number);
-    const [endH, endM] = next[idx].end.split(":").map(Number);
+    // 시작/종료 시간 검증
+    const [startH, startM] = next[idx].from.split(":").map(Number);
+    const [endH, endM] = next[idx].to.split(":").map(Number);
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
 
@@ -42,35 +47,41 @@ const OperatingTimeForm: React.FC<Props> = ({ value, onChange }) => {
     if (endMinutes <= startMinutes) {
       const newEndH = Math.floor((startMinutes + 30) / 60);
       const newEndM = (startMinutes + 30) % 60;
-      next[idx].end = `${String(newEndH).padStart(2, "0")}:${String(
+      next[idx].to = `${String(newEndH).padStart(2, "0")}:${String(
         newEndM
       ).padStart(2, "0")}`;
     }
 
-    onChange({ ...value, operatingTimes: next });
+    onChange({ ...value, space: { ...value.space, operations: next } });
   };
 
-  const addHoliday = () =>
+  const addHoliday = (from: string, to: string) =>
     onChange({
       ...value,
-      holidays: [...value.holidays, { startDate: "", endDate: "" }],
+      space: {
+        ...value.space,
+        closedDays: [...value.space.closedDays, { from, to }],
+      },
     });
 
   const removeHoliday = (idx: number) =>
     onChange({
       ...value,
-      holidays: value.holidays.filter((_, i) => i !== idx),
+      space: {
+        ...value.space,
+        closedDays: value.space.closedDays.filter((_, i) => i !== idx),
+      },
     });
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <SectionHeader>운영시간 설정</SectionHeader>
 
-      {value.operatingTimes.map((ot, i) => {
-        const [startH, startM] = ot.start.split(":").map(Number);
+      {value.space.operations.map((op, i) => {
+        const [startH, startM] = op.from.split(":").map(Number);
         const startMinutes = startH * 60 + startM;
 
-        const [endH, endM] = ot.end.split(":").map(Number);
+        const [endH, endM] = op.to.split(":").map(Number);
         const endMinutes = endH * 60 + endM;
 
         // 시작 시간 옵션: 종료 시간보다 같거나 이후는 disabled
@@ -86,30 +97,26 @@ const OperatingTimeForm: React.FC<Props> = ({ value, onChange }) => {
         // 종료 시간 옵션: 시작 시간보다 같거나 이전은 disabled
         const endOptions = TIME_OPTIONS.map((t) => {
           const [h, m] = t.value.split(":").map(Number);
-          const minutes = h * 60 + m;
-          return {
-            ...t,
-            disabled: minutes <= startMinutes,
-          };
+          return { ...t, disabled: h * 60 + m <= startMinutes };
         });
 
         return (
           <Operation key={DAYS[i]}>
-            <h5>{ot.day}</h5>
+            <h5>{DAYS[i]}</h5>
 
-            {ot.isOpen ? (
+            {op.isOpen ? (
               <TimeBox>
                 <SelectBox2
                   options={startOptions}
-                  value={ot.start}
-                  onChange={(v: string) => updateDay(i, { start: v })}
+                  value={op.from}
+                  onChange={(v: string) => updateDay(i, { from: v })}
                   width="6.75rem"
                 />
                 <h4>~</h4>
                 <SelectBox2
                   options={endOptions}
-                  value={ot.end}
-                  onChange={(v: string) => updateDay(i, { end: v })}
+                  value={op.to}
+                  onChange={(v: string) => updateDay(i, { to: v })}
                   width="6.75rem"
                 />
               </TimeBox>
@@ -123,13 +130,13 @@ const OperatingTimeForm: React.FC<Props> = ({ value, onChange }) => {
 
             <SwitchWrapper>
               <Switch
-                initial={ot.isOpen}
+                initial={op.isOpen}
                 onToggle={(checked: boolean) =>
                   updateDay(i, { isOpen: checked })
                 }
               />
             </SwitchWrapper>
-            <span>{ot.isOpen ? "운영" : "휴무"}</span>
+            <span>{op.isOpen ? "운영" : "휴무"}</span>
           </Operation>
         );
       })}
@@ -138,34 +145,8 @@ const OperatingTimeForm: React.FC<Props> = ({ value, onChange }) => {
 
       <SectionHeader>
         <span>휴무일 설정</span>
-        <AutomaticHoliday onClick={addHoliday}>
-          공휴일 휴일 적용
-        </AutomaticHoliday>
+        <AutomaticHoliday onClick={() => {}}>공휴일 휴일 적용</AutomaticHoliday>
       </SectionHeader>
-
-      {/* {value.holidays.map((h, i) => (
-        <Row key={i}>
-          <Input
-            placeholder="YYYY-MM-DD"
-            value={h.startDate}
-            onChange={(e) => {
-              const next = [...value.holidays];
-              next[i] = { ...next[i], startDate: e.target.value };
-              onChange({ ...value, holidays: next });
-            }}
-          />
-          <Input
-            placeholder="YYYY-MM-DD"
-            value={h.endDate}
-            onChange={(e) => {
-              const next = [...value.holidays];
-              next[i] = { ...next[i], endDate: e.target.value };
-              onChange({ ...value, holidays: next });
-            }}
-          />
-          <button onClick={() => removeHoliday(i)}>삭제</button>
-        </Row>
-      ))} */}
 
       <AddHolidayBtn onClick={() => setCalendarOpen(true)}>
         + 추가하기

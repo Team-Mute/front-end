@@ -16,38 +16,44 @@ import Tabs from "./Tabs";
 import SpaceSettingsForm from "./SpaceSettingsForm";
 import OperatingTimeForm from "./OperatingTimeForm";
 import { CATEGORIES, DAYS, REGIONS } from "@/constants/space";
-import { OperatingTime, SpaceFormData } from "@/types/space";
+import { SpaceRequest, Operation } from "@/types/space";
 
 interface SpaceFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialData?: Partial<SpaceFormData>;
+  initialData?: Partial<SpaceRequest>;
   title: string;
-  onSubmit: (data: SpaceFormData) => void;
+  spaceId?: number; // 수정 시만 필요
+  onSubmit: (data: SpaceRequest, spaceId?: number) => void;
 }
 
-const makeDefaultOperatingTimes = (): OperatingTime[] =>
-  DAYS.map((d) => ({
-    day: d,
-    start: "09:00",
-    end: "18:00",
-    isOpen: true,
-  }));
+const makeDefaultOperations = (): Operation[] => [
+  { day: 1, from: "09:00", to: "18:00", isOpen: true },
+  { day: 2, from: "09:00", to: "18:00", isOpen: true },
+  { day: 3, from: "09:00", to: "18:00", isOpen: true },
+  { day: 4, from: "09:00", to: "18:00", isOpen: true },
+  { day: 5, from: "09:00", to: "18:00", isOpen: true },
+  { day: 6, from: "10:00", to: "14:00", isOpen: true },
+  { day: 7, from: "00:00", to: "00:00", isOpen: false },
+];
 
-const makeInitialFormData = (init?: Partial<SpaceFormData>): SpaceFormData => ({
-  title: init?.title ?? "",
-  capacity: init?.capacity ?? null,
-  region: init?.region ?? "",
-  address: init?.address ?? "",
-  category: init?.category ?? "",
+const makeInitialFormData = (init?: Partial<SpaceRequest>): SpaceRequest => ({
+  space: {
+    spaceName: init?.space?.spaceName ?? "",
+    spaceDescription: init?.space?.spaceDescription ?? "",
+    spaceCapacity: init?.space?.spaceCapacity ?? 0,
+    spaceIsAvailable: init?.space?.spaceIsAvailable ?? true,
+    regionId: init?.space?.regionId ?? 0,
+    categoryId: init?.space?.categoryId ?? 0,
+    locationId: init?.space?.locationId ?? 0,
+    tagNames: init?.space?.tagNames ?? [],
+    userName: init?.space?.userName ?? "",
+    reservationWay: init?.space?.reservationWay ?? "",
+    spaceRules: init?.space?.spaceRules ?? "",
+    operations: init?.space?.operations ?? makeDefaultOperations(),
+    closedDays: init?.space?.closedDays ?? [],
+  },
   images: init?.images ?? [],
-  amenities: init?.amenities ?? [],
-  description: init?.description ?? "",
-  process: init?.process ?? "",
-  rules: init?.rules ?? "",
-  active: init?.active ?? true,
-  operatingTimes: init?.operatingTimes ?? makeDefaultOperatingTimes(),
-  holidays: init?.holidays ?? [],
 });
 
 const SpaceFormModal: React.FC<SpaceFormModalProps> = ({
@@ -55,10 +61,11 @@ const SpaceFormModal: React.FC<SpaceFormModalProps> = ({
   onClose,
   initialData,
   title,
+  spaceId,
   onSubmit,
 }) => {
   const [activeTab, setActiveTab] = React.useState<"space" | "time">("space");
-  const [form, setForm] = React.useState<SpaceFormData>(
+  const [form, setForm] = React.useState<SpaceRequest>(
     makeInitialFormData(initialData)
   );
 
@@ -107,7 +114,7 @@ const SpaceFormModal: React.FC<SpaceFormModalProps> = ({
 
         {/* 3. Footer */}
         <Footer>
-          <Button onClick={() => onSubmit(form)} isActive={true}>
+          <Button onClick={() => onSubmit(form, spaceId)} isActive={true}>
             완료
           </Button>
         </Footer>

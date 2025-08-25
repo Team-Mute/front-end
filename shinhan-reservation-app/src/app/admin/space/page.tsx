@@ -2,11 +2,21 @@
 
 import React, { useEffect, useState } from "react";
 import { useSpaceStore } from "@/store/spaceStore";
-import SearchBar from "@/components/Searchbar";
+import SearchBar from "@/components/common/searchbar/admin/Searchbar";
 import styled from "@emotion/styled";
 import IconButton from "@/components/common/button/IconButton";
 import SpaceCard from "./components/SpaceCard";
 import SpaceFormModal from "./components/SpaceFormModal/index";
+import {
+  createSpaceApi,
+  getAllSpaceListApi,
+  getManagerSpaceListApi,
+  getRegionSpaceListApi,
+  updateSpaceApi,
+} from "@/lib/api/admin/adminSpace";
+import { SpaceRequest } from "@/types/space";
+import { useAdminAuthStore } from "@/store/adminAuthStore";
+import { mapDetailToRequest } from "@/lib/utils/spaceMapper";
 
 const options = [
   { value: "all", label: "전체" },
@@ -15,37 +25,62 @@ const options = [
 ];
 
 export default function DashboardPage() {
-  const { spaces, removeSpace, filter, setFilter, keyword, setKeyword } =
-    useSpaceStore();
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [keyword, setKeyword] = useState("");
+
+  const [editingSpace, setEditingSpace] = useState<any | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // ✅ 공간 리스트 불러오기
+  const { adminRoleId } = useAdminAuthStore();
+
+  useEffect(() => {
+    async function fetchSpaces() {
+      try {
+        let data: any[] = [];
+
+        if (adminRoleId === 2) {
+          // 1차 승인자용: 지역 조회 후 해당 regionId로 리스트 조회
+          const regionData = await getManagerSpaceListApi(); // 담당자 지역 정보 반환
+          const regionId = regionData[0].regionId;
+          data = await getRegionSpaceListApi(regionId);
+        } else if (adminRoleId == 0 || adminRoleId == 1) {
+          // 마스터, 2차 승인자용: 전체 리스트
+          data = await getAllSpaceListApi();
+        }
+
+        setSpaces(data);
+      } catch (e) {
+        console.error("공간 리스트 불러오기 실패", e);
+      }
+    }
+
+    fetchSpaces();
+  }, [adminRoleId]);
+
   const filteredSpaces = spaces.filter((space) => {
     if (filter === "all") return true;
-    if (filter === "space") return space.title.includes(keyword);
-    if (filter === "manager") return space.manager.includes(keyword);
+    if (filter === "space") return space.spaceName?.includes(keyword);
+    if (filter === "manager") return space.userName?.includes(keyword);
     return true;
   });
 
-  const [editingSpace, setEditingSpace] = useState<(typeof spaces)[0] | null>(
-    null
-  );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const [remWidth, setRemWidth] = useState(0);
-
-  useEffect(() => {
-    const updateRemWidth = () => {
-      const rootFontSize = parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-      );
-      setRemWidth(window.innerWidth / rootFontSize);
-    };
-
-    updateRemWidth();
-    window.addEventListener("resize", updateRemWidth);
-
-    return () => {
-      window.removeEventListener("resize", updateRemWidth);
-    };
-  }, []);
+  const reloadSpaces = async () => {
+    try {
+      let data: any[] = [];
+      if (adminRoleId === 2) {
+        const regionData = await getManagerSpaceListApi();
+        const regionId = regionData.regionId;
+        data = await getRegionSpaceListApi(regionId);
+      } else if (adminRoleId === 0 || adminRoleId === 1) {
+        data = await getAllSpaceListApi();
+      }
+      setSpaces(data);
+    } catch (e) {
+      console.error("공간 리스트 불러오기 실패", e);
+    }
+  };
 
   return (
     <Container>
@@ -72,19 +107,16 @@ export default function DashboardPage() {
       <CardContainer>
         {filteredSpaces.map((space) => (
           <SpaceCard
-            key={space.id}
-            imageUrl={space.imageUrl}
-            title={space.title}
-            region={space.region}
-            manager={space.manager}
-            isPrivate={space.isPrivate}
-            isDraft={space.isDraft}
+            key={space.spaceId}
+            imageUrl={space.spaceImageUrl}
+            title={space.spaceName}
+            region={space.regionName}
+            manager={space.userName}
+            isPrivate={!space.spaceIsAvailable}
             onEdit={() => setEditingSpace(space)}
           />
         ))}
       </CardContainer>
-      {/* 뷰포트 rem 표시 */}
-      {/* <ViewportBadge>{remWidth.toFixed(2)} rem</ViewportBadge> */}
 
       {/* 등록 모달 */}
       {isCreateOpen && (
@@ -93,22 +125,36 @@ export default function DashboardPage() {
           onClose={() => setIsCreateOpen(false)}
           title="새 공간 등록"
           initialData={undefined} // 등록은 초기값 없음
-          onSubmit={(data) => {
-            console.log("새 공간 등록", data);
-            setIsCreateOpen(false);
+          onSubmit={async (data: SpaceRequest) => {
+            try {
+              await createSpaceApi(data);
+              await reloadSpaces(); // 등록 후 다시 불러오기
+            } catch (e) {
+              console.error("공간 등록 실패", e);
+            } finally {
+              setIsCreateOpen(false);
+            }
           }}
         />
       )}
 
+      {/* 수정 모달 */}
       {editingSpace && (
         <SpaceFormModal
-          isOpen={!!editingSpace}
+          isOpen
           onClose={() => setEditingSpace(null)}
-          initialData={editingSpace ?? undefined} // 여기서 해당 공간 데이터(id 포함)를 넘김
+          initialData={mapDetailToRequest(editingSpace)} // ✅ 변환해서 넘김
           title="공간 수정"
-          onSubmit={(updatedData) => {
-            console.log("수정된 데이터:", updatedData);
-            setEditingSpace(null);
+          spaceId={editingSpace.spaceId}
+          onSubmit={async (data: SpaceRequest, spaceId?: number) => {
+            try {
+              await updateSpaceApi(spaceId!, data);
+              await reloadSpaces();
+            } catch (e) {
+              console.error("공간 수정 실패", e);
+            } finally {
+              setEditingSpace(null);
+            }
           }}
         />
       )}
