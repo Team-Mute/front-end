@@ -8,6 +8,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useAdminAuthStore } from "@/store/adminAuthStore";
+import Footer from "@/components/Footer";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Global styles={globalStyles} />
         {isAdmin ? <HeaderAdmin /> : <Header />}
         <main>{children}</main>
+        {!isAdmin && <Footer />}
       </body>
     </html>
   );

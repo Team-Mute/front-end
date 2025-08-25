@@ -87,6 +87,16 @@ export const globalStyles = css`
     line-height: 1.5;
   }
 
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* 화면 전체 높이 */
+  }
+
+  main {
+    flex: 1; /* 남는 공간을 차지하게 해서 Footer를 바닥으로 밀어냄 */
+  }
+
   a {
     text-decoration: none;
     color: inherit;
