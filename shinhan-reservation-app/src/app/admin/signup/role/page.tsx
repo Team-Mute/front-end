@@ -6,7 +6,7 @@ import Button from "@/components/common/button/Button";
 import { useRouter } from "next/navigation";
 import InfoModal from "@/components/modal/InfoModal";
 import SelectBox2 from "@/components/common/selectbox/Selectbox2";
-import { adminSignUpApi } from "@/lib/api/adminAuth";
+import { adminSignUpApi } from "@/lib/api/admin/adminAuth";
 import { useAdminAuthStore } from "@/store/adminAuthStore";
 import Loading from "@/components/common/Loading";
 
@@ -77,7 +77,6 @@ export default function SignupRolePage() {
 
         setIsModalOpen(true);
       }
-      console.log("회원 생성 완료!", error);
     } finally {
       setIsLoading(false);
     }
