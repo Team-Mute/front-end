@@ -17,7 +17,7 @@ import AddUserIcon from "@/styles/icons/adduser.svg";
 import ThreeLine from "@/styles/icons/threeline.svg";
 
 import { useRouter } from "next/navigation";
-import { adminLogoutApi } from "@/lib/api/adminAuth";
+import { adminLogoutApi } from "@/lib/api/admin/adminAuth";
 import { useAdminAuthStore } from "@/store/adminAuthStore";
 
 type MenuItem = { label: string; path: string; icon: React.FC };
@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
 
 export default function HeaderAdmin() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { adminAccessToken } = useAdminAuthStore();
+  const { adminAccessToken, adminRoleId } = useAdminAuthStore();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -74,10 +74,13 @@ export default function HeaderAdmin() {
                 {label}
               </MenuLink>
             ))}
-            <MenuLink href="/admin/signup">
-              <AddUserIcon />
-              회원가입
-            </MenuLink>
+            {/* roleId가 0인 관리자만 회원가입 메뉴 노출 */}
+            {adminRoleId === 0 && (
+              <MenuLink href="/admin/signup">
+                <AddUserIcon />
+                계정 만들기
+              </MenuLink>
+            )}
             <MenuLink href={"/"} onClick={handleLogout}>
               <LogoutIcon />
               로그아웃

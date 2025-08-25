@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 export interface AdminSignUpData {
-  roleId?: Number;
+  roleId?: number;
   regionName?: string;
   userEmail?: string;
   userName?: string;
@@ -13,6 +13,10 @@ interface AdminAuthState {
   adminAccessToken: string | null;
   setAdminAccessToken: (token: string) => void;
   clearAdminAuth: () => void;
+
+  // 관리자 roleId
+  adminRoleId: number | null;
+  setAdminRoleId: (roleId: number) => void;
 
   // 관리자 회원가입 데이터
   adminSignUpData: AdminSignUpData | null;
@@ -26,14 +30,25 @@ export const useAdminAuthStore = create<AdminAuthState>((set) => ({
       ? localStorage.getItem("adminAccessToken")
       : null,
 
+  adminRoleId:
+    typeof window !== "undefined" && localStorage.getItem("adminRoleId")
+      ? Number(localStorage.getItem("adminRoleId"))
+      : null,
+
   setAdminAccessToken: (token) => {
     localStorage.setItem("adminAccessToken", token); // localStorage 저장
     set({ adminAccessToken: token });
   },
 
+  setAdminRoleId: (roleId) => {
+    localStorage.setItem("adminRoleId", roleId.toString());
+    set({ adminRoleId: roleId });
+  },
+
   clearAdminAuth: () => {
     localStorage.removeItem("adminAccessToken"); // 로그아웃 시 제거
-    set({ adminAccessToken: null });
+    localStorage.removeItem("adminRoleId");
+    set({ adminAccessToken: null, adminRoleId: null });
   },
 
   // 회원가입 관련 초기 상태
