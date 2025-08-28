@@ -53,3 +53,18 @@ export interface SpaceDetailPayload {
   regDate: string;
   updDate: string | null;
 }
+
+// 공간 검색 요청 타입
+export interface SearchSpaceRequest {
+  regionId: number | null; // 서울 1, 인천 2, 대구 3, 대전 4
+  categoryId: number | null; // 미팅룸 1, 행사장 2
+  people: number | null; // 수용 인원
+  tagNames: string[]; // 편의시설 이름 배열
+  startDate: string | null; // ISO8601 (예: 2025-08-26T05:43:24.100Z)
+  endDate: string | null;
+}
+
+export interface User {
+  id: string;
+  location?: number; // 로그인한 사용자의 지역 ID (regionId와 동일 규칙)
+}
