@@ -57,10 +57,10 @@ const CardWrapper = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 20rem;
+  max-width: 22rem;
+
   border-radius: 0.625rem;
   background-color: ${colors.graycolor5};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
 const ImageWrapper = styled.div`
