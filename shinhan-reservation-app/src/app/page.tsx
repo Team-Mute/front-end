@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchBar from "@/components/common/searchbar/user/Searchbar";
 import styled from "@emotion/styled";
 import LocationIcon from "@/styles/icons/location.svg";
@@ -12,14 +12,26 @@ import FilteringButton from "@/components/common/button/FilteringButton";
 import MeetingIcon from "@/styles/icons/meeting.svg";
 import EventRoomIcon from "@/styles/icons/event-room.svg";
 import SpaceInfoCard from "./user-components/SpaceInfoCard";
+import { useSpaceStore } from "@/store/spaceStore";
+import CapacitySelect from "@/components/dropdownModal/CapacitySelect";
+import DateTimeSelect from "@/components/dropdownModal/DateTimeSelect";
+import FacilitySelect from "@/components/dropdownModal/FacilitySelect";
+import { getTagsApi } from "@/lib/api/admin/adminSpace";
+import { getSpaceListApi } from "@/lib/api/userSpace";
+import Loading from "@/components/common/Loading";
 
 export default function HomePage() {
   const options = [
-    { label: "서울", value: "서울" },
-    { label: "인천", value: "인천" },
-    { label: "대구", value: "대구" },
-    { label: "대전", value: "대전" },
+    { label: "서울", value: "1" },
+    { label: "인천", value: "2" },
+    { label: "대구", value: "3" },
+    { label: "대전", value: "4" },
   ];
+
+  // 안내 모달 관리
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 모달 열림 상태 관리
   const [isPeopleModalOpen, setPeopleModalOpen] = useState(false);
@@ -28,144 +40,301 @@ export default function HomePage() {
 
   // 모달 적용 핸들러
   const handleApplyPeople = () => {
+    setSelectedCapacity(tempCapacity); // ✅ 최종 반영
+
     setPeopleModalOpen(false);
-    // 필요하면 여기서 추가 액션
+    console.log("최종 선택된 인원:", tempCapacity);
   };
 
   const handleApplyDate = () => {
+    setSelectedStartDate(tempStartDate);
+    setSelectedEndDate(tempEndDate);
+    setSelectedTime(tempTime);
     setDateModalOpen(false);
+    console.log(
+      "최종 선택된 날짜 및 시간:",
+      tempStartDate,
+      tempEndDate,
+      tempTime
+    );
   };
 
   const handleApplyFacilities = () => {
+    setSelectedFacilities(tempFacilities);
     setFacilityModalOpen(false);
+    console.log("최종 선택된 시설:", tempFacilities);
   };
 
+  // 모달 닫을 시 초기값
+  const handleClosePeople = () => {
+    setPeopleModalOpen(false);
+    setTempCapacity(selectedCapacity); // 닫을 때 리셋
+  };
+
+  const handleCloseDate = () => {
+    setDateModalOpen(false);
+    setTempStartDate(selectedStartDate);
+    setTempEndDate(selectedEndDate);
+    setTempTime(selectedTime);
+  };
+
+  const handleCloseFacilities = () => {
+    setFacilityModalOpen(false);
+    setTempFacilities(selectedFacilities);
+  };
+
+  // 공간 리스트
+  const [spaceList, setSpaceList] = useState<
+    {
+      spaceId: number;
+      spaceName: string;
+      spaceDescription: string;
+      spaceCapacity: number;
+      categoryName: string;
+      tagNames: string[];
+      location: string;
+      spaceImageUrl: string;
+    }[]
+  >([]);
+
+  // 공간 리스트 호출
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      try {
+        const res = await getSpaceListApi(
+          1,
+          selectedCategoryId,
+          selectedCapacity,
+          selectedFacilities
+        ); // API에서 공간 리스트 받아오기
+        setSpaceList(res);
+      } catch (err) {
+        console.error("공간 리스트 불러오기 실패", err);
+      }
+    };
+
+    fetchSpaces();
+  }, []);
+
+  // 검색어
+  const [searchText, setSearchText] = useState("");
+
   // 필터 상태 관리
-  const [peopleCount, setPeopleCount] = useState(1); // 기본 1명
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedRegionId, setSelectedRegionId] = useState<number>(1);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | undefined
+  >(undefined); // 1: 미팅룸, 2: 행사장
+  const [selectedCapacity, setSelectedCapacity] = useState(1); // 기본 1명
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<{
     start: string;
     end: string;
   } | null>(null);
+
+  const [allFacilities, setAllFacilities] = useState<
+    { tagId: number; tagName: string }[]
+  >([]);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
+
+  // 필터 임시 저장 값
+  const [tempCapacity, setTempCapacity] = useState(selectedCapacity);
+  const [tempStartDate, setTempStartDate] = useState<Date | null>(
+    selectedStartDate
+  );
+  const [tempEndDate, setTempEndDate] = useState<Date | null>(selectedEndDate);
+  const [tempTime, setTempTime] = useState<{
+    start: string;
+    end: string;
+  } | null>(selectedTime);
+  const [tempFacilities, setTempFacilities] =
+    useState<string[]>(selectedFacilities);
+
+  // 상태 바뀔 시 리스트 호출
+  // 최종 상태가 바뀌면 API 호출
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getSpaceListApi(
+          selectedRegionId,
+          selectedCategoryId,
+          selectedCapacity,
+          selectedFacilities
+          // 필요하다면 날짜/시간도 같이 전달
+        );
+        if (res.length === 0) {
+          setInfoTitle("아쉽게도 일치하는 공간이 없어요");
+          setInfoContents(
+            "입력하신 조건에 맞는 공간이 없습니다. 조건을 변경해 다시 시도해주세요."
+          );
+          setIsModalOpen(true);
+        } else {
+          setSpaceList(res);
+        }
+      } catch (err) {
+        console.error("공간 리스트 불러오기 실패", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSpaces();
+  }, [
+    selectedCategoryId,
+    selectedCapacity,
+    selectedStartDate,
+    selectedEndDate,
+    selectedTime,
+    selectedFacilities,
+  ]);
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSearch = async () => {
+    try {
+      const res = await fetch("/api/parse-reservation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: searchText, user: { location: 1 } }),
+      });
+      const data = await res.json();
+      console.log("GPT parsed result:", data);
+      // 여기에 상태 업데이트 → 필터 UI/카드 렌더링 반영 가능
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const res = await getTagsApi(); // [{ tagId, tagName }, ...]
+        setAllFacilities(res);
+      } catch (err) {
+        console.error("태그 불러오기 실패", err);
+      }
+    };
+    fetchTags();
+  }, []);
 
   return (
     <MainWrapper>
+      <Loading isLoading={isLoading} />
+
       <SearchWrapper>
         <Title>적어서 한번에 예약하기</Title>
 
         <SearchBarWrapper>
           <SearchBar
             options={options}
-            selectedValue=""
-            onSearchChange={() => {}}
-            searchValue=""
-            onSelectChange={() => {}}
+            selectedValue={selectedRegionId.toString()}
+            searchValue={searchText}
+            onSearchChange={(value) => setSearchText(value)}
+            onSelectChange={(value) => setSelectedRegionId(Number(value))} // string → number 변환
             placeholder="예: 다음주 화요일 오후 2시에서 4시에 50명 수용 가능한 큰 행사장 예약"
+            onEnter={handleSearch} // ⬅️ 부모에서 검색 실행 함수 연결
           />
         </SearchBarWrapper>
       </SearchWrapper>
       <ResultsWrapper>
         <FilterWrapper>
-          <FilteringButton label="미팅룸" icon={<MeetingIcon />} />
-          <FilteringButton label="행사장" icon={<EventRoomIcon />} />
+          <FilteringButton
+            label="미팅룸"
+            icon={<MeetingIcon />}
+            onClick={() => {
+              setSelectedCategoryId(1);
+            }}
+          />
+          <FilteringButton
+            label="행사장"
+            icon={<EventRoomIcon />}
+            onClick={() => {
+              setSelectedCategoryId(2);
+            }}
+          />
           {/* 인원 선택 버튼 */}
           <ModalButton
-            label={`인원`}
+            label="인원"
+            isOpen={isPeopleModalOpen}
+            onToggle={() => setPeopleModalOpen((prev) => !prev)}
             modal={
               <DropdownModal
-                isOpen={isPeopleModalOpen}
-                onClose={() => setPeopleModalOpen(false)}
-                title="인원 선택"
+                onClose={handleClosePeople}
+                title="인원수 선택"
                 onApply={handleApplyPeople}
+                isApplyActive={tempCapacity > 0}
               >
-                {/* 여기에 + / - 버튼으로 인원 선택 UI */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "1rem",
-                    justifyContent: "center",
-                  }}
-                >
-                  <button
-                    onClick={() => setPeopleCount((c) => Math.max(1, c - 1))}
-                  >
-                    -
-                  </button>
-                  <span>{peopleCount}</span>
-                  <button onClick={() => setPeopleCount((c) => c + 1)}>
-                    +
-                  </button>
-                </div>
+                <CapacitySelect
+                  value={tempCapacity}
+                  onChange={setTempCapacity}
+                />
               </DropdownModal>
             }
           />
 
           {/* 날짜/시간 선택 버튼 */}
           <ModalButton
-            label={selectedDate ? selectedDate.toLocaleDateString() : "날짜"}
-            onClick={() => setPeopleModalOpen(true)} // 버튼 클릭 시 모달 열기
+            label="날짜/시간"
+            isOpen={isDateModalOpen}
+            onToggle={() => setDateModalOpen((prev) => !prev)}
             modal={
               <DropdownModal
-                isOpen={isDateModalOpen}
-                onClose={() => setDateModalOpen(false)}
-                title="날짜/시간 선택"
+                onClose={handleCloseDate}
+                title="이용 시간 및 날짜 선택"
                 onApply={handleApplyDate}
+                isApplyActive={!!tempStartDate} // 선택 여부로 active 결정
               >
-                {/* 여기에 캘린더 컴포넌트 연결 */}
-                <div>CalendarComponent 들어갈 자리</div>
+                <DateTimeSelect
+                  selectedDate={
+                    tempEndDate ? [tempStartDate!, tempEndDate] : tempStartDate
+                  }
+                  selectedTime={tempTime}
+                  onClose={() => {}}
+                  onDateSelect={(start, end) => {
+                    const toDate = (s: string) =>
+                      new Date(s.replace(/:/g, "-"));
+
+                    setTempStartDate(start ? toDate(start) : null);
+                    setTempEndDate(end ? toDate(end) : null);
+                  }}
+                  onTimeSelect={(start, end) => {
+                    setTempTime({ start, end: end ?? start });
+                  }}
+                />
               </DropdownModal>
             }
           />
 
           {/* 편의시설 선택 버튼 */}
           <ModalButton
-            label={
-              selectedFacilities.length
-                ? `편의시설 (${selectedFacilities.length})`
-                : "편의시설"
-            }
+            label="편의시설"
+            isOpen={isFacilityModalOpen}
+            onToggle={() => setFacilityModalOpen((prev) => !prev)}
             modal={
               <DropdownModal
-                isOpen={isFacilityModalOpen}
-                onClose={() => setFacilityModalOpen(false)}
+                onClose={handleCloseFacilities}
                 title="편의시설 선택"
                 onApply={handleApplyFacilities}
+                isApplyActive={tempFacilities.length > 0}
               >
-                {/* 편의시설 체크박스 UI */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "0.5rem",
-                  }}
-                >
-                  {["Wi-Fi", "주차", "음료", "빔프로젝터"].map((facility) => (
-                    <label key={facility}>
-                      <input
-                        type="checkbox"
-                        checked={selectedFacilities.includes(facility)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedFacilities((prev) => [
-                              ...prev,
-                              facility,
-                            ]);
-                          } else {
-                            setSelectedFacilities((prev) =>
-                              prev.filter((f) => f !== facility)
-                            );
-                          }
-                        }}
-                      />
-                      {facility}
-                    </label>
-                  ))}
-                </div>
+                <FacilitySelect
+                  facilities={allFacilities} // ✅ 전체 태그 목록 내려줌
+                  selectedFacilities={tempFacilities}
+                  setSelectedFacilities={setTempFacilities}
+                />
               </DropdownModal>
             }
           />
         </FilterWrapper>
+        <CardsWrapper>
+          {spaceList.map((space) => (
+            <SpaceInfoCard key={space.spaceId} {...space} />
+          ))}
+        </CardsWrapper>
+      </ResultsWrapper>
+      <RecommendRoomWrapper>
+        <h3>회의실을 찾으시나요?</h3>
         <CardsWrapper>
           {/* 예시 데이터 - 실제로는 API에서 받아온 배열 map */}
           {[
@@ -233,8 +402,15 @@ export default function HomePage() {
             <SpaceInfoCard key={space.spaceId} {...space} />
           ))}
         </CardsWrapper>
-      </ResultsWrapper>
-      <RecommendRoomWrapper></RecommendRoomWrapper>
+      </RecommendRoomWrapper>
+      <InfoModal
+        isOpen={isModalOpen}
+        title={infoTitle}
+        subtitle={infoContents}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}
+      ></InfoModal>
     </MainWrapper>
   );
 }
@@ -243,13 +419,11 @@ const MainWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 360px;
+  padding: 0 10rem;
 
-  // background-color: pink;
-
-  padding: 1.5rem 10rem;
-
-  @media (max-width: 873px) {
-    padding: 1.5rem 5%;
+  @media (max-width: 768px) {
+    padding: 0 5%;
   }
 `;
 
@@ -268,7 +442,6 @@ const SearchWrapper = styled.div`
   width: 100%;
   gap: 1rem;
   margin-top: 5rem;
-  // background-color: yellow;
 `;
 
 const SearchBarWrapper = styled.div`
@@ -293,31 +466,88 @@ const FilterWrapper = styled.div`
 const ResultsWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  // align-items: flex-start;
   width: 100%;
-  // background-color: green;
 
+  margin: 0 auto; /* 좌우 여백 자동 */
   margin-top: 2.5rem;
+
+  /* 3열 기준 */
+  max-width: calc(3 * 22rem + 2 * 1.5rem);
+
+  @media (max-width: 1438px) {
+    /* 2열 기준 */
+    max-width: calc(2 * 22rem + 1 * 1.5rem);
+  }
+
+  @media (max-width: 1063px) {
+    /* 1열 기준 */
+    max-width: 22rem;
+  }
 `;
 
 const CardsWrapper = styled.div`
-  margin-top: 1.5rem;
+  // margin-top: 1.5rem;
+  // display: grid;
+  // grid-template-columns: repeat(auto-fill, 22rem);
+  // gap: 1.5rem;
+  // justify-content: center;
+  // width: 100%;
+
+  // background-color: blue;
+  // @media (max-width: 768px) {
+  //   grid-template-columns: 1fr; /* 모바일에서는 1열 */
+  //   justify-items: center;
+  // }
+
   display: grid;
-  grid-template-columns: repeat(auto-fill, 22rem);
+  grid-template-columns: repeat(auto-fit, 22rem);
   gap: 1.5rem;
-  justify-content: center;
+  margin-top: 1.5rem;
+
+  justify-content: flex-start;
+
   width: 100%;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr; /* 모바일에서는 1열 */
-    justify-items: center;
+  // max-width: calc(3 * 22rem + 2 * 1.5rem); /* 최대 3열 기준 */
+  //margin: 0 auto; /* 남는 공간 자동으로 양쪽 패딩 역할 */
+
+  /* 모바일 */
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr; /* 강제로 1열 */
+    // justify-content: center; /* 가운데 정렬 */
+    // justify-items: center; /* 각 카드 내부도 가운데 정렬 */
+    gap: 1rem;
   }
 `;
 
 const RecommendRoomWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  // align-items: flex-start;
   width: 100%;
-  // background-color: beige;
+
+  margin: 0 auto; /* 좌우 여백 자동 */
+  margin-top: 3rem;
+
+  /* 3열 기준 */
+  max-width: calc(3 * 22rem + 2 * 1.5rem);
+
+  @media (max-width: 1438px) {
+    /* 2열 기준 */
+    max-width: calc(2 * 22rem + 1 * 1.5rem);
+  }
+
+  @media (max-width: 1063px) {
+    /* 1열 기준 */
+    max-width: 22rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 110%; /* 1.375rem */
+    letter-spacing: -0.03125rem;
+  }
 `;
