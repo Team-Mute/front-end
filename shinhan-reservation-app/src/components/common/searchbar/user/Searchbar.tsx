@@ -26,6 +26,7 @@ interface SearchBarProps {
   placeholder?: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
+  onEnter?: (value: string) => void; // ⬅️ 부모에서 검색 실행 함수 받기
 }
 
 export default function SearchBar({
@@ -35,6 +36,7 @@ export default function SearchBar({
   placeholder = "공간명, 담당자로 검색",
   searchValue,
   onSearchChange,
+  onEnter,
 }: SearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -71,7 +73,10 @@ export default function SearchBar({
               <OptionItem
                 key={opt.value}
                 isSelected={opt.value === selectedValue}
-                onClick={() => handleSelect(opt.value)}
+                onClick={(e) => {
+                  e.stopPropagation(); // 클릭 이벤트 버블링 방지
+                  handleSelect(opt.value);
+                }}
               >
                 {opt.label}
               </OptionItem>
@@ -89,6 +94,11 @@ export default function SearchBar({
         placeholder={placeholder}
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onEnter) {
+            onEnter(searchValue); // 부모에서 내려준 콜백 실행
+          }
+        }}
       />
     </Wrapper>
   );
@@ -148,7 +158,7 @@ const OptionItem = styled.li<{ isSelected: boolean }>`
 `;
 
 const SearchInput = styled.input`
-  display: flex;
+  // display: flex;
   width: 100%;
   height: 3rem;
   padding: 0.5rem 0.63rem;
