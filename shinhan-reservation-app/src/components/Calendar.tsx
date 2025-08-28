@@ -15,14 +15,21 @@ const formatDate = (date: Date) => {
 
 interface CalendarProps {
   onSelectDate: (result: { single?: string; range?: [string, string] }) => void;
+  selectedDate?: Date | [Date, Date] | null; // 단일 또는 구간
 }
 
-const Calendar = ({ onSelectDate }: CalendarProps) => {
-  const [range, setRange] = useState<[Date | null, Date | null]>([null, null]);
+const Calendar = ({ onSelectDate, selectedDate }: CalendarProps) => {
+  const [range, setRange] = useState<[Date | null, Date | null]>(() => {
+    if (!selectedDate) return [null, null];
+    if (Array.isArray(selectedDate)) return [selectedDate[0], selectedDate[1]];
+    return [selectedDate, selectedDate];
+  });
+
   const [startDate, endDate] = range;
 
-  const handleChange = (dates: [Date | null, Date | null]) => {
-    const [start, end] = dates;
+  const handleChange = (dates: Date | null) => {
+    const start = dates;
+    const end = dates;
 
     if (start && !end) {
       // 단일 선택처럼 보이게 (end를 start로 맞춤)
@@ -37,16 +44,31 @@ const Calendar = ({ onSelectDate }: CalendarProps) => {
     }
   };
 
+  // const handleChange = (dates: [Date | null, Date | null]) => {
+  //   const [start, end] = dates;
+
+  //   if (start && !end) {
+  //     // 단일 선택처럼 보이게 (end를 start로 맞춤)
+  //     setRange([start, null]);
+  //     onSelectDate({ single: formatDate(start) });
+  //   } else if (start && end) {
+  //     // 구간 선택
+  //     setRange([start, end]);
+  //     onSelectDate({ range: [formatDate(start), formatDate(end)] });
+  //   } else {
+  //     setRange([null, null]);
+  //   }
+  // };
+
   return (
     <CalendarWrapper>
       <DatePicker
         locale={ko}
-        selectsRange
+        // selectsRange
+        minDate={new Date()}
         startDate={startDate}
         endDate={endDate}
-        onChange={(update) =>
-          handleChange(update as [Date | null, Date | null])
-        }
+        onChange={(update) => handleChange(update as Date | null)}
         dateFormat="yyyy-MM-dd"
         inline
         renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => {
@@ -89,7 +111,6 @@ export default Calendar;
 const CalendarWrapper = styled.div`
   display: flex;
   justify-content: center;
-  font-family: inherit;
 
   .react-datepicker {
     border: none;
