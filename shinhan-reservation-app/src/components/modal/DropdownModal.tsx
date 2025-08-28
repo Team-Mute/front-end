@@ -5,80 +5,79 @@ import Button from "../common/button/Button";
 import { IoCloseOutline } from "react-icons/io5";
 
 interface DropdownModalProps {
-  isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode; // 모달 내부 내용
   onApply?: () => void; // 적용 버튼 클릭 시
   applyLabel?: string; // 적용 버튼 라벨
+  isApplyActive?: boolean;
 }
 
 const DropdownModal = ({
-  isOpen,
   onClose,
   title,
   children,
   onApply,
-  applyLabel = "적용",
+  applyLabel = "적용하기",
+  isApplyActive = false,
 }: DropdownModalProps) => {
-  if (!isOpen) return null;
-
   return (
-    <Overlay>
-      <ModalContainer>
-        <Header>
-          <Title>{title}</Title>
-          <CloseButton onClick={onClose}>
-            <IoCloseOutline size={24} />
-          </CloseButton>
-        </Header>
+    <ModalContainer>
+      <Header>
+        <Title>{title}</Title>
+        <CloseButton onClick={onClose}>
+          <IoCloseOutline size={24} />
+        </CloseButton>
+      </Header>
 
-        <Content>{children}</Content>
+      <Content>{children}</Content>
 
-        {onApply && (
-          <ButtonWrapper>
-            <Button onClick={onApply} isActive={true} width="100%">
-              {applyLabel}
-            </Button>
-          </ButtonWrapper>
-        )}
-      </ModalContainer>
-    </Overlay>
+      {onApply && (
+        <ButtonWrapper>
+          <Button
+            onClick={onApply}
+            isActive={isApplyActive}
+            width="100%"
+            disabled={!isApplyActive}
+          >
+            {applyLabel}
+          </Button>
+        </ButtonWrapper>
+      )}
+    </ModalContainer>
   );
 };
 
 export default DropdownModal;
 
 // --- styled ---
-const maxWidth = "22rem";
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
+// const maxWidth = "22rem";
 
 const ModalContainer = styled.div`
-  width: ${maxWidth};
+  position: relative;
+  min-width: 22rem;
+
+  margin-top: 0.5rem;
+
+  z-index: 1000;
   background-color: white;
+
+  width: 100%;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 2.25rem 3.25rem;
+
+  border: 1px solid ${colors.graycolor10};
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  padding: 1.25rem;
+
   margin-bottom: 1rem;
 `;
 
@@ -96,11 +95,14 @@ const CloseButton = styled.button`
 
 const Content = styled.div`
   width: 100%;
+
+  padding: 1rem 1.25rem;
 `;
 
 const ButtonWrapper = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 1.5rem;
   width: 100%;
+
+  padding: 1.5rem 1.25rem;
 `;
