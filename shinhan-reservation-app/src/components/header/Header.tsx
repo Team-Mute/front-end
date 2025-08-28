@@ -127,8 +127,12 @@ const HeaderWrapper = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 1.25rem 3.75rem;
   position: relative;
+
+  @media (max-width: 768px) {
+    padding: 1.25rem 2rem;
+  }
 `;
 
 const Left = styled.div`
