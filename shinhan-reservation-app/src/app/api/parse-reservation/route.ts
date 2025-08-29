@@ -31,7 +31,12 @@ export async function POST(req: NextRequest) {
 4. 편의시설(tagNames): /api/spaces/tags API 응답에 있는 tagName만 매칭, 없으면 빈 배열
 5. 날짜/시간(startDate, endDate):
    - 항상 KST(한국 표준시) 기준 ISO 8601 포맷으로 반환
-   - 입력에 날짜 언급이 없고 시간만 있는 경우, 날짜는 "1999-10-16"로, 시간은 입력한 시간 반영
+   - 입력에 날짜가 하루가 아닌 기간(예: "23일부터 27일", "다음주 중", "오늘부터 내일")인 경우:
+       * isRangeInput: true 로 표시
+       * startDate/endDate는 구간 중 첫 번째 날짜 기준으로 하루만 반환
+       * 예시: "23일부터 27일" → isRangeInput=true, startDate="2025-08-23T00:00:00+09:00", endDate="2025-08-23T23:59:59+09:00"
+   - 입력이 단일 날짜면 isRangeInput=false
+   - 입력에 날짜 언급이 없고 시간만 있는 경우, 날짜는 오늘 날짜로, 시간은 입력한 시간 반영
    - 입력에 시간이 없고 날짜만 있는 경우 startDate = 00:00:00, endDate = 23:59:59로 하루 전체 설정
    - 입력에 날짜와 시간 모두 있으면 그대로 반영
 `,
@@ -51,6 +56,7 @@ export async function POST(req: NextRequest) {
               tagNames: { type: "array", items: { type: "string" } },
               startDate: { type: ["string", "null"] },
               endDate: { type: ["string", "null"] },
+              isRangeInput: { type: "boolean" },
             },
             required: [
               "regionId",
@@ -59,6 +65,7 @@ export async function POST(req: NextRequest) {
               "tagNames",
               "startDate",
               "endDate",
+              "isRangeInput",
             ],
           },
         },
