@@ -39,7 +39,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         "/",
         "/detail",
       ];
-      if (!userToken && !publicPaths.includes(pathname)) {
+
+      const isPublicPath =
+        publicPaths.includes(pathname) || /^\/spaces\/\d+$/.test(pathname);
+
+      if (!userToken && !isPublicPath) {
         router.replace("/login");
       } else {
         setAuthorized(true);

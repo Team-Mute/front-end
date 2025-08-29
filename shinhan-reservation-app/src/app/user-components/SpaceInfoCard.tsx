@@ -4,6 +4,7 @@
 import React from "react";
 import styled from "@emotion/styled";
 import colors from "@/styles/theme";
+import { useRouter } from "next/navigation";
 
 interface SpaceInfoCardProps {
   spaceId: number;
@@ -26,8 +27,14 @@ export default function SpaceInfoCard({
   location,
   spaceImageUrl,
 }: SpaceInfoCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/spaces/${spaceId}`); // ✅ 상세 페이지로 이동
+  };
+
   return (
-    <CardWrapper>
+    <CardWrapper onClick={handleClick}>
       {/* 1. 사진 */}
       <ImageWrapper>
         <Image src={spaceImageUrl} alt={spaceName} />
@@ -60,7 +67,7 @@ const CardWrapper = styled.div`
   max-width: 22rem;
 
   border-radius: 0.625rem;
-  background-color: ${colors.graycolor5};
+  background-color: white;
 `;
 
 const ImageWrapper = styled.div`

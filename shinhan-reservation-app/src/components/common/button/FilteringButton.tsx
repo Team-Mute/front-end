@@ -21,7 +21,7 @@ export default function FilteringButton({
 }: FilteringButtonProps) {
   return (
     <Wrapper>
-      <Button onClick={() => {}}>
+      <Button onClick={onClick}>
         {icon && <IconWrapper>{icon}</IconWrapper>}
 
         <span>{label}</span>

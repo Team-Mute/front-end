@@ -17,8 +17,8 @@ import SelectBox2 from "../common/selectbox/Selectbox2";
 import { TIME_OPTIONS } from "@/constants/space";
 
 interface Props {
-  selectedDate: Date | [Date, Date] | null; // ✅ 단일 또는 구간
-  selectedTime: { start: string; end: string } | null;
+  selectedDate: Date | [Date, Date] | undefined; // ✅ 단일 또는 구간
+  selectedTime: { start: string; end: string } | undefined;
   onClose: () => void;
   onDateSelect: (start: string, end?: string) => void;
   onTimeSelect: (start: string, end?: string) => void;
