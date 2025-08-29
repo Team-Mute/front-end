@@ -3,15 +3,11 @@ import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
 import qs from "qs";
 
-// import { useRouter } from "next/router";
-
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
-// const router = useRouter();
 
 const axiosClient = axios.create({
   baseURL: baseURL,
   paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
-  //withCredentials: true, // refresh token 쿠키 포함
 });
 
 axiosClient.interceptors.request.use((config) => {
