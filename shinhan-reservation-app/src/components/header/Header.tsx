@@ -39,7 +39,7 @@ export default function Header() {
         {/* 데스크탑 메뉴 */}
         <Right>
           {accessToken ? (
-            <NavButton as={Link} href="/mypage">
+            <NavButton as={Link} href="/mypage/reservations">
               마이페이지
             </NavButton>
           ) : (
