@@ -75,7 +75,7 @@ export default function Header() {
               <MenuLink
                 onClick={() => {
                   setMenuOpen(false);
-                  // router.push("/mypage");
+                  router.push("/mypage");
                 }}
               >
                 마이페이지
