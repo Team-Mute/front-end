@@ -32,8 +32,8 @@ export interface SpaceRequest {
   images: File[];
 }
 
-// 공간 상세 조회 타입
-export interface SpaceDetailPayload {
+// 관리자 쪽 공간 상세 조회 타입
+export interface AdminSpaceDetailPayload {
   spaceId: number;
   spaceName: string;
   region: { regionId: number; regionName: string };
@@ -53,6 +53,35 @@ export interface SpaceDetailPayload {
   regDate: string;
   updDate: string | null;
 }
+
+// 사용자쪽 공간 상세 조회 타입
+export type SpaceDetailPayload = {
+  spaceId: number;
+  spaceName: string;
+  regionName: string;
+  categoryName: string;
+  spaceCapacity: number;
+  spaceDescription: string;
+  spaceImageUrl: string;
+  reservationWay: string;
+  spaceRules: string;
+  location: {
+    locationName: string;
+    addressRoad: string;
+  };
+  detailImageUrls: string[];
+  tagNames: string[];
+  operations: {
+    day: number;
+    from: string;
+    to: string;
+    isOpen: boolean;
+  }[];
+  closedDays: {
+    from: string;
+    to: string;
+  }[];
+};
 
 // 공간 검색 요청 타입
 export interface SearchSpaceRequest {
