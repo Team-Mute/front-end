@@ -1,8 +1,8 @@
 // utils/spaceMapper.ts
-import { SpaceDetailPayload, SpaceRequest } from "@/types/space";
+import { AdminSpaceDetailPayload, SpaceRequest } from "@/types/space";
 
 export const mapDetailToRequest = (
-  detail: SpaceDetailPayload
+  detail: AdminSpaceDetailPayload
 ): SpaceRequest => {
   return {
     space: {
