@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useAdminAuthStore } from "@/store/adminAuthStore";
 import Footer from "@/components/Footer";
+import Script from "next/script";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -61,7 +62,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     !(isPublicAdminPath || (!isAdmin ? userToken : adminToken))
   ) {
     return (
-      <html lang="ko">
+      <html lang="ko" suppressHydrationWarning>
         <body>
           <Global styles={globalStyles} />
           {isAdmin ? <HeaderAdmin /> : <Header />}
@@ -72,8 +73,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body>
+        <Script
+          strategy="beforeInteractive"
+          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAOMAP_API_KEY}&autoload=false`}
+        />
         <Global styles={globalStyles} />
         {isAdmin ? <HeaderAdmin /> : <Header />}
         <main>{children}</main>
