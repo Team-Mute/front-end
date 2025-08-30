@@ -6,15 +6,24 @@
 
 import axiosClient from "./axiosClient";
 
-// 공간 리스트 조회 (TODO: 이후에 startDate, endDate 날짜 추가 필요!!)
+// 공간 리스트 조회
 export async function getSpaceListApi(
   regionId?: number,
   categoryId?: number,
   people?: number,
-  tagNames?: string[]
+  tagNames?: string[],
+  startDateTime?: string,
+  endDateTime?: string
 ) {
   const { data } = await axiosClient.get("/api/spaces-user", {
-    params: { regionId, categoryId, people, tagNames },
+    params: {
+      regionId,
+      categoryId,
+      people,
+      tagNames,
+      startDateTime,
+      endDateTime,
+    },
   });
   return data;
 }

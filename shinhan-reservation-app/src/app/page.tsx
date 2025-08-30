@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation"; // ✅ (1) 라우팅 위해 추가
 
 import Loading from "@/components/common/Loading";
 import { useFilterStore } from "@/store/filterStore";
+import { combineDateAndTime } from "@/lib/utils/combineDateTime";
 
 export default function HomePage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function HomePage() {
   const handleApplyPeople = () => {
     setFilters({ capacity: tempCapacity });
     setPeopleModalOpen(false);
-    console.log("최종 선택된 인원:", tempCapacity);
+    // console.log("최종 선택된 인원:", tempCapacity);
   };
 
   const handleApplyDate = () => {
@@ -68,23 +69,21 @@ export default function HomePage() {
       endDate: tempEndDate,
       time: tempTime,
     });
-    // setSelectedStartDate(tempStartDate);
-    // setSelectedEndDate(tempEndDate);
-    // setSelectedTime(tempTime);
+
     setDateModalOpen(false);
-    console.log(
-      "최종 선택된 날짜 및 시간:",
-      tempStartDate,
-      tempEndDate,
-      tempTime
-    );
+    // console.log(
+    //   "최종 선택된 날짜 및 시간:",
+    //   tempStartDate,
+    //   tempEndDate,
+    //   tempTime
+    // );
   };
 
   const handleApplyFacilities = () => {
     setFilters({ facilities: tempFacilities });
 
     setFacilityModalOpen(false);
-    console.log("최종 선택된 시설:", tempFacilities);
+    // console.log("최종 선택된 시설:", tempFacilities);
   };
 
   // 모달 닫을 시 초기값
@@ -119,46 +118,12 @@ export default function HomePage() {
     }[]
   >([]);
 
-  // // 공간 리스트 호출
-  // useEffect(() => {
-  //   const fetchSpaces = async () => {
-  //     try {
-  //       const res = await getSpaceListApi(
-  //         1,
-  //         selectedCategoryId,
-  //         selectedCapacity,
-  //         selectedFacilities
-  //       ); // API에서 공간 리스트 받아오기
-  //       setSpaceList(res);
-  //     } catch (err) {
-  //       console.error("공간 리스트 불러오기 실패", err);
-  //     }
-  //   };
-
-  //   fetchSpaces();
-  // }, []);
-
   // 검색어
   const [searchText, setSearchText] = useState("");
-
-  // 필터 상태 관리
-
-  // const [selectedRegionId, setSelectedRegionId] = useState<number>(1);
-  // const [selectedCategoryId, setSelectedCategoryId] = useState<
-  //   number | undefined
-  // >(undefined); // 1: 미팅룸, 2: 행사장
-  // const [selectedCapacity, setSelectedCapacity] = useState(1); // 기본 1명
-  // const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
-  // const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
-  // const [selectedTime, setSelectedTime] = useState<{
-  //   start: string;
-  //   end: string;
-  // } | null>(null);
 
   const [allFacilities, setAllFacilities] = useState<
     { tagId: number; tagName: string }[]
   >([]);
-  // const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
 
   // 필터 임시 저장 값
   const [tempCapacity, setTempCapacity] = useState(capacity);
@@ -181,12 +146,25 @@ export default function HomePage() {
     const fetchSpaces = async () => {
       setIsLoading(true);
       try {
+        const startDateTime = combineDateAndTime(
+          startDate, // Date | undefined
+          time?.start, // string | undefined
+          "start" // 👉 start 모드
+        );
+
+        const endDateTime = combineDateAndTime(
+          endDate, // Date | undefined
+          time?.end, // string | undefined
+          "end" // 👉 end 모드
+        );
+
         const res = await getSpaceListApi(
           regionId,
           categoryId,
           capacity,
-          facilities
-          // 필요하다면 날짜/시간도 같이 전달
+          facilities,
+          startDateTime,
+          endDateTime
         );
         if (res.length === 0) {
           setInfoTitle("아쉽게도 일치하는 공간이 없어요");
@@ -196,16 +174,6 @@ export default function HomePage() {
           setIsModalOpen(true);
         } else {
           setSpaceList(res);
-
-          //     setFilters({
-          //   regionId: regionId,
-          //   categoryId: categoryId,
-          //   capacity: people,
-          //   startDate: startDate,
-          //   endDate: endDate,
-          //   facilities: data.tagNames,
-          //   hasGptSearch: true,
-          // });
         }
       } catch (err) {
         console.error("공간 리스트 불러오기 실패", err);
@@ -247,19 +215,17 @@ export default function HomePage() {
         hasGptSearch: true,
       });
 
-      // setSelectedRegionId(data.regionId);
-      // setSelectedCategoryId(data.categoryId);
-      // setSelectedCapacity(data.people);
-      // setSelectedStartDate(data.startDate);
-      // setSelectedEndDate(data.endDate);
-      // setSelectedFacilities(data.tagNames);
-
       // ✅ (5) API 호출
+      const startDateTime = data.startDate.replace(/([+-]\d{2}:\d{2}|Z)$/, "");
+      const endDateTime = data.endDate.replace(/([+-]\d{2}:\d{2}|Z)$/, "");
+
       const spaceRes = await getSpaceListApi(
         data.regionId,
         data.categoryId,
         data.people,
-        data.tagNames
+        data.tagNames,
+        startDateTime,
+        endDateTime
       );
 
       if (spaceRes.length === 0) {
@@ -281,11 +247,6 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // ✅ (8) 사용자가 직접 필터 조절할 때는 Store 초기화 /////////////////
-  const handleCategoryChange = (id: number) => {
-    clearFilters();
   };
 
   useEffect(() => {
