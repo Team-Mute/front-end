@@ -1,5 +1,6 @@
 import adminAxiosClient from "./adminAxiosClient";
 import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
+
 // 예약 관리 리스트 호출 API
 export const getReservationApi = async ({
     page,
@@ -31,11 +32,11 @@ export const getReservationApi = async ({
     }
 };
 
-/**
- * 하나 또는 여러 개의 예약 ID를 배열로 받아 승인 요청을 보냅니다.
+/** 승인하기 API
+ * 하나 또는 여러 개의 예약 ID를 배열로 받아 승인 요청 진행
  * @param reservationIds 승인할 예약 ID 배열
  */
-export const postApproveReservations = async (reservationIds: number[]) => {
+export const postApproveReservationsApi = async (reservationIds: number[]) => {
     try {
         const response = await adminAxiosClient.post(`/api/reservations-admin/approve`, {
             reservationIds // API 명세에 맞춰 배열을 body에 담아 전송
@@ -48,3 +49,15 @@ export const postApproveReservations = async (reservationIds: number[]) => {
     }
 };
 
+/**
+ * 예약 반려 API 
+ * @param reservationId 반려할 예약 ID
+ * @param rejectionReason 반려 사유
+ */
+export const postRejectReservationApi = async (reservationId: number, rejectionReason: string) => {
+    // API 요청 형식에 맞춰 rejectionReason을 Body에 담아 보냅니다.
+    const response = await adminAxiosClient.post(`/api/reservations-admin/reject/${reservationId}`, {
+        rejectionReason: rejectionReason,
+    });
+    return response.data;
+};

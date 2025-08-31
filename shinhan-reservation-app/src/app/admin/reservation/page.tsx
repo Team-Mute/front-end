@@ -11,11 +11,12 @@ import { css } from '@emotion/react';
 import styled from '@emotion/styled';
 import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
-import { getReservationApi, postApproveReservations } from '@/lib/api/admin/adminReservation';
+import { getReservationApi, postApproveReservationsApi, postRejectReservationApi } from '@/lib/api/admin/adminReservation';
 import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
 import InfoModal from '@/components/modal/InfoModal';
 import BulkApproveModal from '@/components/modal/reservationAdmin/BulkApproveModal';
 import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
+import RejectModal from '@/components/modal/reservationAdmin/RejectModal';
 
 const ReservationManagementPage: React.FC = () => {
        // 1. API 데이터 및 로딩 관련 상태
@@ -50,6 +51,11 @@ const ReservationManagementPage: React.FC = () => {
     const [isBulkConfirmModalOpen, setIsBulkConfirmModalOpen] = useState(false); // 일괄 승인 모달
     const [reservationsToApprove, setReservationsToApprove] = useState<Reservation[]>([]); // 일괄 승인 모달에 표시할 예약 객체
     
+    // 반려
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [selectedReservationIdToReject, setSelectedReservationIdToReject] = useState<number | null>(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+
     const statusMap = { /* ... */ };
     const branchMap = { /* ... */ };
     const statusOptions = Object.keys(statusMap);
@@ -184,7 +190,7 @@ const ReservationManagementPage: React.FC = () => {
         setIsBulkConfirmModalOpen(false); // 모달 즉시 닫기
         try {
             // 선택된 모든 항목에 대해 API를 호출
-            await postApproveReservations(selectedItems); 
+            await postApproveReservationsApi(selectedItems); 
 
             // 성공 알림 모달
             showAlertModal('승인 완료', '선택하신 예약이 성공적으로 승인되었습니다.');
@@ -196,6 +202,36 @@ const ReservationManagementPage: React.FC = () => {
             // 실패 알림 모달
             showAlertModal('승인 실패', '일괄 승인에 실패했습니다. 다시 시도해주세요.');
             console.error("일괄 승인 실패", err);
+        }
+    };
+
+    // 반려하기 버튼을 눌렀을 때 호출되는 함수
+    const handleReject = (reservationId: number) => {
+        setSelectedReservationIdToReject(reservationId);
+        setIsRejectModalOpen(true); // 반려 모달 열기
+    };
+
+    // 모달에서 '반려하기' 버튼을 눌러 최종 확정하는 함수
+    const confirmReject = async () => {
+        if (selectedReservationIdToReject === null || !rejectionReason.trim()) {
+            //showAlertModal('알림', '반려 사유를 입력해주세요.');
+            return;
+        }
+
+        try {
+            await postRejectReservationApi(selectedReservationIdToReject, rejectionReason);
+            console.log("반려API 요청 성공!");
+            showAlertModal('반려 완료', '해당 예약이 반려되었습니다.');
+            
+            // 상태 초기화 및 데이터 다시 로드
+            setIsRejectModalOpen(false);
+            setRejectionReason('');
+            await loadReservations();
+            
+        } catch (err) {
+            console.error("반려 실패", err);
+            setIsRejectModalOpen(false);
+            showAlertModal('반려 실패', '예약 반려에 실패했습니다. 다시 시도해주세요.');
         }
     };
 
@@ -353,7 +389,10 @@ const ReservationManagementPage: React.FC = () => {
                                     승인하기
                                 </ApproveActionButton>
                                 {/* 반려하기 버튼 - isRejectable 값에 따라 비활성화 */}
-                                <RejectActionButton disabled={!reservation.isRejectable}>
+                                <RejectActionButton 
+                                    disabled={!reservation.isRejectable}
+                                    onClick={() => handleReject(reservation.reservationId)}
+                                >
                                     반려하기
                                 </RejectActionButton>
                             </ItemActions>
@@ -397,6 +436,17 @@ const ReservationManagementPage: React.FC = () => {
                         setIsBulkConfirmModalOpen(false);
                         setReservationsToApprove([]); // 모달 닫을 때 상태 초기화
                     }}
+                />
+                {/* 반려하기 모달 */}
+                <RejectModal
+                    isOpen={isRejectModalOpen}
+                    onClose={() => {
+                        setIsRejectModalOpen(false);
+                        setRejectionReason(''); // 모달 닫을 때 사유 초기화
+                    }}
+                    onConfirm={confirmReject}
+                    rejectionReason={rejectionReason}
+                    setRejectionReason={setRejectionReason}
                 />
         </MainContainer>
     );
