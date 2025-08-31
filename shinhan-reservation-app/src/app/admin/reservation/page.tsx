@@ -13,6 +13,10 @@ import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
 import { getReservationApi, postApproveReservations } from '@/lib/api/admin/adminReservation';
 import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
+import ConfirmModal from "@/components/modal/ConfirmModal"; 
+import InfoModal from '@/components/modal/InfoModal';
+import BulkApproveModal from '@/components/modal/reservationAdmin/BulkApproveModal';
+import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
 
 const ReservationManagementPage: React.FC = () => {
        // 1. API 데이터 및 로딩 관련 상태
@@ -40,6 +44,15 @@ const ReservationManagementPage: React.FC = () => {
     // 5. 체크박스 선택 관련 상태
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
     
+    //6. 모달
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [infoModalTitle, setInfoModalTitle] = useState('');
+    const [infoModalSubtitle, setInfoModalSubtitle] = useState('');
+    const [isBulkConfirmModalOpen, setIsBulkConfirmModalOpen] = useState(false); // 일괄 승인 모달
+    const [reservationsToApprove, setReservationsToApprove] = useState<Reservation[]>([]); // 일괄 승인 모달에 표시할 예약 객체
+    
     const statusMap = { /* ... */ };
     const branchMap = { /* ... */ };
     const statusOptions = Object.keys(statusMap);
@@ -63,8 +76,8 @@ const ReservationManagementPage: React.FC = () => {
             setTotalPages(data.totalPages);
             
         } catch (err) {
-            console.error(err);
-            setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
+            // 에러 발생 시 `showAlertModal` 호출
+            showAlertModal('오류 발생', '데이터를 불러오지 못했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);
         }
@@ -125,51 +138,88 @@ const ReservationManagementPage: React.FC = () => {
 
      // 개별 승인 버튼 핸들러
     const handleApprove = async (reservationId: number) => {
-        if (!window.confirm('정말 이 예약을 승인하시겠습니까?')) {
-            return;
-        }
+        setSelectedReservationId(reservationId);
+        setIsConfirmModalOpen(true); // 모달 열기
+    };
 
+    // 2. InfoModal을 띄우는 함수 생성
+    const showAlertModal = (title: string, subtitle: string) => {
+        setInfoModalTitle(title);
+        setInfoModalSubtitle(subtitle);
+        setIsInfoModalOpen(true);
+    };
+
+    // 4. 모달에서 '확인' 버튼 클릭 시 실행될 함수 정의
+    const confirmApprove = async () => {
+        if (selectedReservationId === null) return;
         try {
-            await postApproveReservations([reservationId]); // ⭐️ 단일 ID를 배열에 담아 함수 호출
-            alert('예약이 성공적으로 승인되었습니다.');
-            loadReservations();
-        } catch (error) {
-            if (error instanceof Error) {
-                // 'error'가 Error 타입임을 확인했으므로, message 속성에 접근 가능
-                console.error("데이터를 가져오는 중 오류 발생:", error.message);
-                setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
-            } else {
-                // Error 인스턴스가 아닐 경우, 다른 방식으로 처리
-                setError('알 수 없는 오류가 발생했습니다.');
-            }
+            await postApproveReservations([selectedReservationId]);
+            // 성공 시 데이터 다시 로드
+            await loadReservations(); 
+            setIsConfirmModalOpen(false); // 모달 닫기
+            
+            // 승인 성공 시 `showAlertModal` 호출
+            showAlertModal('승인 완료', '선택하신 예약이 성공적으로 승인되었습니다.');
+        } catch (err) {
+            // 에러 처리
+            console.error("승인 실패", err);
+            setIsConfirmModalOpen(false); // 모달 닫기
+
+            // 승인 실패 시 `showAlertModal` 호출
+            showAlertModal('승인 실패', '예약 승인에 실패했습니다. 다시 시도해주세요.');
         }
     };
-    
+
+    // 5. 모달에서 '취소' 버튼 클릭 시 실행될 함수 정의
+    const cancelApprove = () => {
+        setIsConfirmModalOpen(false); // 모달 닫기
+        setSelectedReservationId(null);
+    };
+
     //  선택 승인 버튼 핸들러
     const handleApproveSelected = async () => {
         if (selectedItems.length === 0) {
-            alert('승인할 예약을 선택해주세요.');
+            showAlertModal('알림', '승인할 예약을 선택해주세요.');
             return;
         }
-        if (!window.confirm(`${selectedItems.length}개의 예약을 일괄 승인하시겠습니까?`)) {
-            return;
-        }
-        
+        // 선택된 ID들에 해당하는 예약 객체들을 찾아 상태에 저장
+        const selectedReservationObjects = reservations.filter(res => selectedItems.includes(res.reservationId));
+        setReservationsToApprove(selectedReservationObjects);
+
+        setIsBulkConfirmModalOpen(true);
+    };
+
+    const handleSingleSelect = (reservationId: number, isApprovable: boolean) => {
+    // 승인 가능한 항목만 선택/해제 로직을 실행
+    if (!isApprovable) {
+        return; // 승인 불가능하면 아무것도 하지 않고 함수 종료
+    }
+
+    setSelectedItems(prevSelected =>
+        prevSelected.includes(reservationId)
+            ? prevSelected.filter(id => id !== reservationId)
+            : [...prevSelected, reservationId]
+    );
+};
+
+
+    // 3. 모달에서 '확인' 버튼 클릭 시 실행될 일괄 승인 함수 정의
+    const confirmBulkApprove = async () => {
+        setIsBulkConfirmModalOpen(false); // 모달 즉시 닫기
         try {
-            await postApproveReservations(selectedItems); // 선택된 ID 배열을 그대로 함수에 전달
+            // 선택된 모든 항목에 대해 API를 호출
+            await postApproveReservations(selectedItems); 
+
+            // 성공 알림 모달
+            showAlertModal('승인 완료', '선택하신 예약이 성공적으로 승인되었습니다.');
             
-            alert('선택한 예약들이 성공적으로 승인되었습니다.');
-            setSelectedItems([]);
-            loadReservations();
-        } catch (error) {
-            if (error instanceof Error) {
-                // 'error'가 Error 타입임을 확인했으므로, message 속성에 접근 가능
-                console.error("데이터를 가져오는 중 오류 발생:", error.message);
-                setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
-            } else {
-                // Error 인스턴스가 아닐 경우, 다른 방식으로 처리
-                setError('알 수 없는 오류가 발생했습니다.');
-            }
+            // 데이터 다시 로드 및 선택 초기화
+            await loadReservations();
+            setSelectedItems([]); 
+        } catch (err) {
+            // 실패 알림 모달
+            showAlertModal('승인 실패', '일괄 승인에 실패했습니다. 다시 시도해주세요.');
+            console.error("일괄 승인 실패", err);
         }
     };
 
@@ -269,7 +319,9 @@ const ReservationManagementPage: React.FC = () => {
                                         type="checkbox"
                                         id={`checkbox-${reservation.reservationId}`}
                                         checked={selectedItems.includes(reservation.reservationId)}
-                                        onChange={(e) => handleSelectItem(reservation.reservationId, e)}
+                                        onChange={() => handleSingleSelect(reservation.reservationId, reservation.isApprovable)} // 함수에 isApprovable 전달
+                                        // 여기를 수정합니다.
+                                        disabled={!reservation.isApprovable}
                                     />
                                     <CustomCheckbox isChecked={selectedItems.includes(reservation.reservationId)}>
                                         {selectedItems.includes(reservation.reservationId) && <IoCheckmarkSharp size={16} />}
@@ -318,7 +370,10 @@ const ReservationManagementPage: React.FC = () => {
                             <ItemActions>
                                 <DetailButton>상세 보기</DetailButton>
                                 {/* 승인하기 버튼 - isApprovable 값에 따라 비활성화 */}
-                                <ApproveActionButton disabled={!reservation.isApprovable} onClick={() => handleApprove(reservation.reservationId)}>
+                                <ApproveActionButton 
+                                    disabled={!reservation.isApprovable} 
+                                    onClick={() => handleApprove(reservation.reservationId)} // 수정된 핸들러 호출
+                                >
                                     승인하기
                                 </ApproveActionButton>
                                 {/* 반려하기 버튼 - isRejectable 값에 따라 비활성화 */}
@@ -329,6 +384,7 @@ const ReservationManagementPage: React.FC = () => {
                         </ReservationItem>
                     ))}
                 </ReservationList>
+
 
                 {/* Pagination */}
                 <PaginationNav>
@@ -350,51 +406,36 @@ const ReservationManagementPage: React.FC = () => {
                         </PaginationItem>
                     </PaginationList>
                 </PaginationNav>
+                {/* InfoModal(알림) 컴포넌트*/}
+                <InfoModal
+                    isOpen={isInfoModalOpen}
+                    onClose={() => setIsInfoModalOpen(false)} // '확인' 버튼 클릭 시 모달 닫기
+                    title={infoModalTitle}
+                    subtitle={infoModalSubtitle}
+                />
+                {/* 선택 승인을 위한 ConfirmModal 추가 */}
+                <ConfirmModal
+                    isOpen={isBulkConfirmModalOpen}
+                    title="예약 일괄 승인"
+                    subtitle={`${selectedItems.length}개의 예약을 승인하시겠습니까?`}
+                    onConfirm={confirmBulkApprove}
+                    onCancel={() => setIsBulkConfirmModalOpen(false)} // 취소 버튼 로직
+                />
+                 {/* 일괄승인 모달 */}
+                <BulkApproveModal
+                    isOpen={isBulkConfirmModalOpen}
+                    reservations={reservationsToApprove} // 선택된 예약 객체 배열 전달
+                    onConfirm={confirmBulkApprove}
+                    onCancel={() => {
+                        setIsBulkConfirmModalOpen(false);
+                        setReservationsToApprove([]); // 모달 닫을 때 상태 초기화
+                    }}
+                />
         </MainContainer>
     );
 };
 
 export default ReservationManagementPage;
-
-const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const weekday = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${year}년 ${month}월 ${day}일 (${weekday})`;
-};
-
-const formatTimeRange = (fromStr: string, toStr: string): string => {
-    const fromDate = new Date(fromStr);
-    const toDate = new Date(toStr);
-    const fromHours = fromDate.getHours().toString().padStart(2, '0');
-    const fromMinutes = fromDate.getMinutes().toString().padStart(2, '0');
-    const toHours = toDate.getHours().toString().padStart(2, '0');
-    const toMinutes = toDate.getMinutes().toString().padStart(2, '0');
-    return `${fromHours}:${fromMinutes}~${toHours}:${toMinutes}`;
-};
-
-const getStatusStyle = (status: string) => {
-    switch (status) {
-        case '1차 승인 대기':
-            return css`background-color: #FFFCF2; color: #FFBB00;`;
-        case '2차 승인 대기':
-            return css`background-color: #FFF8F2; color: #FF7300;`;
-        case '최종 승인 완료':
-            return css`background-color: #F2FBF8; color: #34C759;`;
-        case '반려':
-            return css`background-color: #FCF2FF; color: #C800FF;`;
-        case '예약 취소':
-            return css`background-color: #F3F4F4; color: #8E8E93;`;
-        case '이용 완료':
-            return css`background-color: #F0F1F5; color: #8496C5;`;
-        default:
-            return css`background-color: #f5f5f5; color: #757575;`;
-    }
-};
 
 const MainContainer = styled.main`
     flex: 1;
