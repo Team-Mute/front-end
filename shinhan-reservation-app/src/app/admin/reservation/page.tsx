@@ -6,31 +6,77 @@
 /** @jsxImportSource @emotion/react */
 /** @jsxImportSource @emotion/react */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
 import { FaCalendarAlt, FaClock, FaUser, FaBuilding, FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
+import axios from "axios";
+import { getReservationApi } from '@/lib/api/admin/adminReservation';
 
 const ReservationManagementPage: React.FC = () => {
-    const [reservations, setReservations] = useState<Reservation[]>(fetchReservations().content);
-    const [selectedItems, setSelectedItems] = useState<number[]>([]);
-    
-    // 예약 상태 드롭다운 상태
+       // 1. API 데이터 및 로딩 관련 상태
+    const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // 2. 검색 및 필터링 관련 상태
+    const [keyword, setKeyword] = useState('');
+    const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
+    const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+    const [isShinhanOnly, setIsShinhanOnly] = useState(false);
+    const [isEmergencyOnly, setIsEmergencyOnly] = useState(false);
+
+    // 3. 드롭다운 UI 상태
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState('예약 상태 전체');
-    const statusOptions = ['전체', '1차 승인 대기', '2차 승인 대기', '최종 승인 완료', '이용 완료', '예약 취소', '반려'];
-
-    // 지점 드롭다운 상태
     const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
     const [selectedBranch, setSelectedBranch] = useState('지점');
-    const branchOptions = ['전체', '서울', '인천', '대구', '대전'];
 
-    // 현재 페이지 및 총 페이지 수 (더미 데이터 기반)
+    // 4. 페이지네이션 관련 상태
     const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = fetchReservations().totalPages; // 더미 데이터에서 totalPages 가져오기
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+    const [totalPages, setTotalPages] = useState(1);
+    
+    // 5. 체크박스 선택 관련 상태
+    const [selectedItems, setSelectedItems] = useState<number[]>([]);
+    
+    const statusMap = { /* ... */ };
+    const branchMap = { /* ... */ };
+    const statusOptions = Object.keys(statusMap);
+    const branchOptions = Object.keys(branchMap);
 
+    //API 호출 로직을 분리한 함수로 대체
+    const loadReservations = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await getReservationApi({
+                currentPage,
+                keyword,
+                statusId: selectedStatusId,
+                regionId: selectedRegionId,
+                isShinhanOnly,
+                isEmergencyOnly,
+            });
+            
+            setReservations(data.content);
+            setTotalPages(data.totalPages);
+            setCurrentPage(data.currentPage + 1);
+
+        } catch (err) {
+            console.error(err);
+            setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        loadReservations();
+    }, [currentPage, keyword, selectedStatusId, selectedRegionId, isShinhanOnly, isEmergencyOnly]);
+
+
+    // UI 핸들러 함수들
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
             const allIds = reservations.map(res => res.reservationId);
@@ -48,24 +94,46 @@ const ReservationManagementPage: React.FC = () => {
         }
     };
     
+    // 수정된 예약 상태 핸들러
     const handleStatusSelect = (status: string) => {
+        // 'status'가 statusMap의 유효한 키라고 타입 단언
         setSelectedStatus(status);
+        setSelectedStatusId(statusMap[status as keyof typeof statusMap]);
         setIsStatusDropdownOpen(false);
+        setCurrentPage(1);
     };
 
+    // 수정된 지점 핸들러
     const handleBranchSelect = (branch: string) => {
+        // 'branch'가 branchMap의 유효한 키라고 타입 단언
         setSelectedBranch(branch);
+        setSelectedRegionId(branchMap[branch as keyof typeof branchMap]);
         setIsBranchDropdownOpen(false);
+        setCurrentPage(1);
     };
 
     const handlePageChange = (page: number) => {
-        if (page > 0 && page <= totalPages) {
+        if (page >= 1 && page < totalPages) {
             setCurrentPage(page);
         }
     };
+    
+    const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setKeyword(e.target.value);
+    };
+    
+    const handleShinhanClick = () => {
+        setIsShinhanOnly(prev => !prev);
+        setCurrentPage(1);
+    };
+    
+    const handleEmergencyClick = () => {
+        setIsEmergencyOnly(prev => !prev);
+        setCurrentPage(1);
+    };
 
-    const isAllSelected = selectedItems.length === reservations.length;
-
+    const isAllSelected = selectedItems.length > 0 && selectedItems.length === reservations.length;
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
     return (
         <MainContainer>
             <Header>
@@ -231,7 +299,7 @@ const ReservationManagementPage: React.FC = () => {
                                 isActive={page === currentPage}
                                 onClick={() => handlePageChange(page)}
                             >
-                                {page}
+                                {page + 1}
                             </PaginationItem>
                         ))}
                         <PaginationItem onClick={() => handlePageChange(currentPage + 1)}>
