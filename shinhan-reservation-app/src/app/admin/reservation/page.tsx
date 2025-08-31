@@ -9,10 +9,10 @@
 import React, { useEffect, useState } from 'react';
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
-import { FaCalendarAlt, FaClock, FaUser, FaBuilding, FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
-import axios from "axios";
-import { getReservationApi } from '@/lib/api/admin/adminReservation';
+import { getReservationApi, postApproveReservations } from '@/lib/api/admin/adminReservation';
+import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
 
 const ReservationManagementPage: React.FC = () => {
        // 1. API 데이터 및 로딩 관련 상태
@@ -34,7 +34,7 @@ const ReservationManagementPage: React.FC = () => {
     const [selectedBranch, setSelectedBranch] = useState('지점');
 
     // 4. 페이지네이션 관련 상태
-    const [currentPage, setCurrentPage] = useState(1);
+    const [uiCurrentPage, setUiCurrentPage] = useState(1); 
     const [totalPages, setTotalPages] = useState(1);
     
     // 5. 체크박스 선택 관련 상태
@@ -46,12 +46,12 @@ const ReservationManagementPage: React.FC = () => {
     const branchOptions = Object.keys(branchMap);
 
     //API 호출 로직을 분리한 함수로 대체
-    const loadReservations = async () => {
+     const loadReservations = async () => {
         setIsLoading(true);
         setError(null);
         try {
             const data = await getReservationApi({
-                currentPage,
+                page: uiCurrentPage, 
                 keyword,
                 statusId: selectedStatusId,
                 regionId: selectedRegionId,
@@ -61,8 +61,7 @@ const ReservationManagementPage: React.FC = () => {
             
             setReservations(data.content);
             setTotalPages(data.totalPages);
-            setCurrentPage(data.currentPage + 1);
-
+            
         } catch (err) {
             console.error(err);
             setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
@@ -71,20 +70,22 @@ const ReservationManagementPage: React.FC = () => {
         }
     };
     
+   // 첫 페이지 로딩 시에만 호출
     useEffect(() => {
         loadReservations();
-    }, [currentPage, keyword, selectedStatusId, selectedRegionId, isShinhanOnly, isEmergencyOnly]);
+    }, []); // 의존성 배열을 비워 첫 렌더링 시에만 실행
 
 
     // UI 핸들러 함수들
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.checked) {
-            const allIds = reservations.map(res => res.reservationId);
-            setSelectedItems(allIds);
-        } else {
-            setSelectedItems([]);
-        }
-    };
+    if (e.target.checked) {
+        // 승인 가능한 모든 예약의 ID만 가져옴
+        const allApprovableIds = approvableReservations.map(res => res.reservationId);
+        setSelectedItems(allApprovableIds);
+    } else {
+        setSelectedItems([]);
+    }
+};
 
     const handleSelectItem = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -100,7 +101,8 @@ const ReservationManagementPage: React.FC = () => {
         setSelectedStatus(status);
         setSelectedStatusId(statusMap[status as keyof typeof statusMap]);
         setIsStatusDropdownOpen(false);
-        setCurrentPage(1);
+        setUiCurrentPage(1); 
+        loadReservations(); 
     };
 
     // 수정된 지점 핸들러
@@ -109,30 +111,70 @@ const ReservationManagementPage: React.FC = () => {
         setSelectedBranch(branch);
         setSelectedRegionId(branchMap[branch as keyof typeof branchMap]);
         setIsBranchDropdownOpen(false);
-        setCurrentPage(1);
+        setUiCurrentPage(1); 
+        loadReservations();
     };
 
+    // 페이지 변경 핸들러는 uiCurrentPage 상태만 변경합니다.
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page < totalPages) {
-            setCurrentPage(page);
+        if (page >= 1 && page <= totalPages) {
+            setUiCurrentPage(page);
+             loadReservations();
+        }
+    };
+
+     // 개별 승인 버튼 핸들러
+    const handleApprove = async (reservationId: number) => {
+        if (!window.confirm('정말 이 예약을 승인하시겠습니까?')) {
+            return;
+        }
+
+        try {
+            await postApproveReservations([reservationId]); // ⭐️ 단일 ID를 배열에 담아 함수 호출
+            alert('예약이 성공적으로 승인되었습니다.');
+            loadReservations();
+        } catch (error) {
+            if (error instanceof Error) {
+                // 'error'가 Error 타입임을 확인했으므로, message 속성에 접근 가능
+                console.error("데이터를 가져오는 중 오류 발생:", error.message);
+                setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
+            } else {
+                // Error 인스턴스가 아닐 경우, 다른 방식으로 처리
+                setError('알 수 없는 오류가 발생했습니다.');
+            }
         }
     };
     
-    const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setKeyword(e.target.value);
-    };
-    
-    const handleShinhanClick = () => {
-        setIsShinhanOnly(prev => !prev);
-        setCurrentPage(1);
-    };
-    
-    const handleEmergencyClick = () => {
-        setIsEmergencyOnly(prev => !prev);
-        setCurrentPage(1);
+    //  선택 승인 버튼 핸들러
+    const handleApproveSelected = async () => {
+        if (selectedItems.length === 0) {
+            alert('승인할 예약을 선택해주세요.');
+            return;
+        }
+        if (!window.confirm(`${selectedItems.length}개의 예약을 일괄 승인하시겠습니까?`)) {
+            return;
+        }
+        
+        try {
+            await postApproveReservations(selectedItems); // 선택된 ID 배열을 그대로 함수에 전달
+            
+            alert('선택한 예약들이 성공적으로 승인되었습니다.');
+            setSelectedItems([]);
+            loadReservations();
+        } catch (error) {
+            if (error instanceof Error) {
+                // 'error'가 Error 타입임을 확인했으므로, message 속성에 접근 가능
+                console.error("데이터를 가져오는 중 오류 발생:", error.message);
+                setError('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
+            } else {
+                // Error 인스턴스가 아닐 경우, 다른 방식으로 처리
+                setError('알 수 없는 오류가 발생했습니다.');
+            }
+        }
     };
 
-    const isAllSelected = selectedItems.length > 0 && selectedItems.length === reservations.length;
+    const approvableReservations = reservations.filter(res => res.isApprovable);
+    const isAllApprovableSelected = approvableReservations.length > 0 && selectedItems.length === approvableReservations.length;
     const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
     return (
         <MainContainer>
@@ -199,15 +241,16 @@ const ReservationManagementPage: React.FC = () => {
                         <HiddenCheckbox
                             type="checkbox"
                             id="selectAllCheckbox"
-                            checked={isAllSelected}
+                            // isAllApprovableSelected 상태를 사용
+                            checked={isAllApprovableSelected}
                             onChange={handleSelectAll}
                         />
-                        <CustomCheckbox isChecked={isAllSelected}>
-                            {isAllSelected && <IoCheckmarkSharp size={16} />}
+                        <CustomCheckbox isChecked={isAllApprovableSelected}>
+                            {isAllApprovableSelected && <IoCheckmarkSharp size={16} />}
                         </CustomCheckbox>
                         <span css={css`color: #4b5563;`}>전체 선택</span>
                     </SelectAllContainer>
-                    <ApproveAllButton>선택 승인</ApproveAllButton>
+                    <ApproveAllButton onClick={handleApproveSelected}>선택 승인</ApproveAllButton>
                 </HeaderActions>
 
                 {/* Reservation List (Responsive) */}
@@ -275,7 +318,7 @@ const ReservationManagementPage: React.FC = () => {
                             <ItemActions>
                                 <DetailButton>상세 보기</DetailButton>
                                 {/* 승인하기 버튼 - isApprovable 값에 따라 비활성화 */}
-                                <ApproveActionButton disabled={!reservation.isApprovable}>
+                                <ApproveActionButton disabled={!reservation.isApprovable} onClick={() => handleApprove(reservation.reservationId)}>
                                     승인하기
                                 </ApproveActionButton>
                                 {/* 반려하기 버튼 - isRejectable 값에 따라 비활성화 */}
@@ -290,19 +333,19 @@ const ReservationManagementPage: React.FC = () => {
                 {/* Pagination */}
                 <PaginationNav>
                     <PaginationList>
-                        <PaginationItem onClick={() => handlePageChange(currentPage - 1)}>
+                        <PaginationItem isArrow onClick={() => handlePageChange(uiCurrentPage - 1)}>
                             {'<'}
                         </PaginationItem>
-                        {pageNumbers.map(page => (
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                             <PaginationItem
                                 key={page}
-                                isActive={page === currentPage}
+                                isActive={page === uiCurrentPage}
                                 onClick={() => handlePageChange(page)}
                             >
-                                {page + 1}
+                                {page}
                             </PaginationItem>
                         ))}
-                        <PaginationItem onClick={() => handlePageChange(currentPage + 1)}>
+                        <PaginationItem isArrow onClick={() => handlePageChange(uiCurrentPage + 1)}>
                             {'>'}
                         </PaginationItem>
                     </PaginationList>
@@ -312,147 +355,6 @@ const ReservationManagementPage: React.FC = () => {
 };
 
 export default ReservationManagementPage;
-
-// JSON 데이터에 맞는 타입 정의
-interface Previsit {
-    previsitId: number;
-    previsitFrom: string;
-    previsitTo: string;
-}
-
-interface Reservation {
-    reservationId: number;
-    reservationStatusName: string;
-    spaceName: string;
-    userName: string;
-    reservationHeadcount: number;
-    reservationFrom: string;
-    reservationTo: string;
-    regDate: string;
-    isShinhan: boolean;
-    isEmergency: boolean;
-    isApprovable: boolean;
-    isRejectable: boolean;
-    previsits: Previsit[];
-}
-
-interface ReservationResponse {
-    content: Reservation[];
-    totalElements: number;
-    totalPages: number;
-    currentPage: number;
-    pageSize: number;
-}
-
-// 더미 데이터 생성 함수 (실제 API 호출 대체)
-const fetchReservations = (): ReservationResponse => {
-    const reservations: Reservation[] = [
-        {
-            reservationId: 1,
-            reservationStatusName: '1차 승인 대기',
-            spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-            userName: '김철수',
-            reservationHeadcount: 5,
-            reservationFrom: '2025-08-15T14:00:00Z',
-            reservationTo: '2025-08-15T16:00:00Z',
-            regDate: '2025-08-14T14:30:00Z',
-            isShinhan: true,
-            isEmergency: false,
-            isApprovable: true,
-            isRejectable: true,
-            previsits: [
-                {
-                    previsitId: 15,
-                    previsitFrom: "2025-08-25T13:00:00.45698",
-                    previsitTo: "2025-08-25T13:30:00.45698"
-                },
-            ],
-        },
-        {
-            reservationId: 2,
-            reservationStatusName: '2차 승인 대기',
-            spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-            userName: '박미수',
-            reservationHeadcount: 3,
-            reservationFrom: '2025-08-15T14:00:00Z',
-            reservationTo: '2025-08-15T16:00:00Z',
-            regDate: '2025-08-14T14:30:00Z',
-            isShinhan: false,
-            isEmergency: true,
-            isApprovable: true,
-            isRejectable: true,
-            previsits: [],
-        },
-        {
-            reservationId: 3,
-            reservationStatusName: '최종 승인 완료',
-            spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-            userName: '김영희',
-            reservationHeadcount: 4,
-            reservationFrom: '2025-08-15T14:00:00Z',
-            reservationTo: '2025-08-15T16:00:00Z',
-            regDate: '2025-08-14T14:30:00Z',
-            isShinhan: false,
-            isEmergency: false,
-            isApprovable: false, // 이 값에 따라 비활성화
-            isRejectable: false, // 이 값에 따라 비활성화
-            previsits: [],
-        },
-        {
-            reservationId: 4,
-            reservationStatusName: '반려',
-            spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-            userName: '송민호',
-            reservationHeadcount: 6,
-            reservationFrom: '2025-08-15T14:00:00Z',
-            reservationTo: '2025-08-15T16:00:00Z',
-            regDate: '2025-08-14T14:30:00Z',
-            isShinhan: false,
-            isEmergency: false,
-            isApprovable: false, // 이 값에 따라 비활성화
-            isRejectable: false, // 이 값에 따라 비활성화
-            previsits: [],
-        },
-        {
-            reservationId: 5,
-            reservationStatusName: '예약 취소',
-            spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-            userName: '강민정',
-            reservationHeadcount: 2,
-            reservationFrom: '2025-08-15T14:00:00Z',
-            reservationTo: '2025-08-15T16:00:00Z',
-            regDate: '2025-08-14T14:30:00Z',
-            isShinhan: false,
-            isEmergency: false,
-            isApprovable: false, // 이 값에 따라 비활성화
-            isRejectable: false, // 이 값에 따라 비활성화
-            previsits: [],
-        },
-        //  {
-        //     reservationId: 6,
-        //     reservationStatusName: '이용 완료',
-        //     spaceName: '명동 신한스퀘어브릿지 지하1층 메인홀',
-        //     userName: '강민정',
-        //     reservationHeadcount: 2,
-        //     reservationFrom: '2025-08-15T14:00:00Z',
-        //     reservationTo: '2025-08-15T16:00:00Z',
-        //     regDate: '2025-08-14T14:30:00Z',
-        //     isShinhan: false,
-        //     isEmergency: false,
-        //     isApprovable: false, // 이 값에 따라 비활성화
-        //     isRejectable: false, // 이 값에 따라 비활성화
-        //     previsits: [],
-        // }
-    ];
-
-    return {
-        content: reservations,
-        totalElements: reservations.length,
-        totalPages: 5,
-        currentPage: 1,
-        pageSize: 5
-    };
-};
 
 const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);

@@ -1,8 +1,8 @@
 import adminAxiosClient from "./adminAxiosClient";
-
-// API 호출 함수를 분리하고, 인수를 받도록 수정
+import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
+// 예약 관리 리스트 호출 API
 export const getReservationApi = async ({
-    currentPage,
+    page,
     keyword,
     statusId,
     regionId,
@@ -17,7 +17,7 @@ export const getReservationApi = async ({
         if (isShinhanOnly) params.append('isShinhan', 'true');
         if (isEmergencyOnly) params.append('isEmergency', 'true');
         
-        params.append('page', String(currentPage));
+        params.append('page', String(page));
         params.append('size', '5');
 
         const url = `/api/reservations-admin/search?${params.toString()}`;
@@ -31,46 +31,20 @@ export const getReservationApi = async ({
     }
 };
 
-// API 응답 데이터 타입을 정의합니다.
-// 이 타입은 컴포넌트 파일에도 동일하게 정의되어 있어야 합니다.
-export interface Reservation {
-    reservationId: number;
-    reservationStatusName: string;
-    spaceName: string;
-    userName: string;
-    reservationHeadcount: number;
-    reservationFrom: string;
-    reservationTo: string;
-    regDate: string;
-    isShinhan: boolean;
-    isEmergency: boolean;
-    isApprovable: boolean;
-    isRejectable: boolean;
-    previsits: {
-        previsitId: number;
-        previsitFrom: string;
-        previsitTo: string;
-    }[];
-    regionId: number;
-    statusId: number;
-    rejectable: boolean;
-    approvable: boolean;
-}
-
-export interface ReservationResponse {
-    content: Reservation[];
-    totalElements: number;
-    totalPages: number;
-    currentPage: number;
-    pageSize: number;
-}
-
-interface ReservationsParams {
-    currentPage: number;
-    keyword?: string;
-    statusId?: number | null;
-    regionId?: number | null;
-    isShinhanOnly?: boolean;
-    isEmergencyOnly?: boolean;
-}
+/**
+ * 하나 또는 여러 개의 예약 ID를 배열로 받아 승인 요청을 보냅니다.
+ * @param reservationIds 승인할 예약 ID 배열
+ */
+export const postApproveReservations = async (reservationIds: number[]) => {
+    try {
+        const response = await adminAxiosClient.post(`/api/reservations-admin/approve`, {
+            reservationIds // API 명세에 맞춰 배열을 body에 담아 전송
+        });
+        
+        return response.status === 200;
+    } catch (error) {
+        console.error("예약 승인 중 오류 발생:", error);
+        throw new Error('예약 승인에 실패했습니다.');
+    }
+};
 
