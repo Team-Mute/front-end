@@ -13,7 +13,6 @@ import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
 import { getReservationApi, postApproveReservations } from '@/lib/api/admin/adminReservation';
 import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
-import ConfirmModal from "@/components/modal/ConfirmModal"; 
 import InfoModal from '@/components/modal/InfoModal';
 import BulkApproveModal from '@/components/modal/reservationAdmin/BulkApproveModal';
 import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
@@ -45,8 +44,6 @@ const ReservationManagementPage: React.FC = () => {
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
     
     //6. 모달
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-    const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [infoModalTitle, setInfoModalTitle] = useState('');
     const [infoModalSubtitle, setInfoModalSubtitle] = useState('');
@@ -137,43 +134,22 @@ const ReservationManagementPage: React.FC = () => {
     };
 
      // 개별 승인 버튼 핸들러
-    const handleApprove = async (reservationId: number) => {
-        setSelectedReservationId(reservationId);
-        setIsConfirmModalOpen(true); // 모달 열기
-    };
+    const handleApprove = (reservationId: number) => {
+    // 단건 승인을 위해 선택된 예약 객체 하나를 찾아서 배열에 담습니다.
+    const selectedReservation = reservations.find(res => res.reservationId === reservationId);
+
+    if (selectedReservation) {
+        // BulkApproveModal이 배열을 기대하므로, 객체를 배열에 담아 전달합니다.
+        setReservationsToApprove([selectedReservation]);
+        setIsBulkConfirmModalOpen(true); // 일괄 승인 모달을 엽니다.
+    }
+};
 
     // 2. InfoModal을 띄우는 함수 생성
     const showAlertModal = (title: string, subtitle: string) => {
         setInfoModalTitle(title);
         setInfoModalSubtitle(subtitle);
         setIsInfoModalOpen(true);
-    };
-
-    // 4. 모달에서 '확인' 버튼 클릭 시 실행될 함수 정의
-    const confirmApprove = async () => {
-        if (selectedReservationId === null) return;
-        try {
-            await postApproveReservations([selectedReservationId]);
-            // 성공 시 데이터 다시 로드
-            await loadReservations(); 
-            setIsConfirmModalOpen(false); // 모달 닫기
-            
-            // 승인 성공 시 `showAlertModal` 호출
-            showAlertModal('승인 완료', '선택하신 예약이 성공적으로 승인되었습니다.');
-        } catch (err) {
-            // 에러 처리
-            console.error("승인 실패", err);
-            setIsConfirmModalOpen(false); // 모달 닫기
-
-            // 승인 실패 시 `showAlertModal` 호출
-            showAlertModal('승인 실패', '예약 승인에 실패했습니다. 다시 시도해주세요.');
-        }
-    };
-
-    // 5. 모달에서 '취소' 버튼 클릭 시 실행될 함수 정의
-    const cancelApprove = () => {
-        setIsConfirmModalOpen(false); // 모달 닫기
-        setSelectedReservationId(null);
     };
 
     //  선택 승인 버튼 핸들러
@@ -370,9 +346,9 @@ const ReservationManagementPage: React.FC = () => {
                             <ItemActions>
                                 <DetailButton>상세 보기</DetailButton>
                                 {/* 승인하기 버튼 - isApprovable 값에 따라 비활성화 */}
-                                <ApproveActionButton 
+                               <ApproveActionButton 
                                     disabled={!reservation.isApprovable} 
-                                    onClick={() => handleApprove(reservation.reservationId)} // 수정된 핸들러 호출
+                                    onClick={() => handleApprove(reservation.reservationId)} // 수정된 handleApprove 호출
                                 >
                                     승인하기
                                 </ApproveActionButton>
@@ -384,7 +360,6 @@ const ReservationManagementPage: React.FC = () => {
                         </ReservationItem>
                     ))}
                 </ReservationList>
-
 
                 {/* Pagination */}
                 <PaginationNav>
@@ -412,14 +387,6 @@ const ReservationManagementPage: React.FC = () => {
                     onClose={() => setIsInfoModalOpen(false)} // '확인' 버튼 클릭 시 모달 닫기
                     title={infoModalTitle}
                     subtitle={infoModalSubtitle}
-                />
-                {/* 선택 승인을 위한 ConfirmModal 추가 */}
-                <ConfirmModal
-                    isOpen={isBulkConfirmModalOpen}
-                    title="예약 일괄 승인"
-                    subtitle={`${selectedItems.length}개의 예약을 승인하시겠습니까?`}
-                    onConfirm={confirmBulkApprove}
-                    onCancel={() => setIsBulkConfirmModalOpen(false)} // 취소 버튼 로직
                 />
                  {/* 일괄승인 모달 */}
                 <BulkApproveModal

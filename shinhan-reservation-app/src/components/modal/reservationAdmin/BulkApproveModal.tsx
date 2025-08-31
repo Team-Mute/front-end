@@ -20,7 +20,9 @@ const BulkApproveModal = ({ isOpen, reservations, onConfirm, onCancel }: BulkApp
         <Overlay>
             <ModalContainer>
                 <ModalHeader>
-                    <ModalTitle>선택 승인</ModalTitle>
+                     <ModalTitle>
+                        {reservations.length > 1 ? '선택 승인' : '예약 승인'}
+                    </ModalTitle>
                     <CloseButton onClick={onCancel}>
                         <IoCloseOutline size={24} color="#6b7280" />
                     </CloseButton>
@@ -65,11 +67,8 @@ const BulkApproveModal = ({ isOpen, reservations, onConfirm, onCancel }: BulkApp
                 </ReservationListContainer>
                 
                 <ButtonWrapper>
-                    <Button onClick={onConfirm} isActive={true} width={"48%"}>
-                        전체 승인하기 ({reservations.length})
-                    </Button>
-                    <Button onClick={onCancel} isActive={false} width={"48%"}>
-                        취소
+                    <Button onClick={onConfirm} isActive={true} width={"98%"}>
+                        {reservations.length > 1 ? '전체 승인하기' : '승인하기'}
                     </Button>
                 </ButtonWrapper>
             </ModalContainer>
