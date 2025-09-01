@@ -15,6 +15,7 @@ interface SelectBoxProps {
   onChange: (value: string) => void;
   placeholder?: string;
   width?: string | number;
+  disabled?: boolean;
 }
 
 export default function SelectBox2({
@@ -23,13 +24,18 @@ export default function SelectBox2({
   onChange,
   placeholder = "선택하세요",
   width = "100%",
+  disabled = false,
 }: SelectBoxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleToggle = () => setIsOpen((prev) => !prev);
+  const handleToggle = () => {
+    if (disabled) return; // disabled면 클릭 무시
+    setIsOpen((prev) => !prev);
+  };
 
   const handleSelect = (val: string) => {
+    if (disabled) return; // disabled면 선택 무시
     onChange(val);
     setIsOpen(false);
   };
@@ -49,7 +55,7 @@ export default function SelectBox2({
 
   return (
     <Container width={width} ref={ref}>
-      <SelectedBox onClick={handleToggle}>
+      <SelectedBox onClick={handleToggle} disabled={disabled}>
         {selectedLabel || <Placeholder>{placeholder}</Placeholder>}
         <ArrowWrapper>
           {isOpen ? <SlArrowUp size={14} /> : <SlArrowDown size={14} />}
@@ -78,7 +84,7 @@ const Container = styled.div<{ width: string | number }>`
   width: ${({ width }) => (typeof width === "number" ? `${width}px` : width)};
 `;
 
-const SelectedBox = styled.div`
+const SelectedBox = styled.div<{ disabled?: boolean }>`
   border: 1px solid ${colors.graycolor10};
   border-radius: 8px;
   padding: 0 12px;
@@ -86,7 +92,8 @@ const SelectedBox = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+
   font-size: 14px;
   background-color: white;
 `;
