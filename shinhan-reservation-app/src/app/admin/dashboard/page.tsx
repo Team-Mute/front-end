@@ -6,6 +6,7 @@ import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import { DashBoardCard } from '@/types/dashBoardAdmin';
 import { getDashboardCardApi, getDashboardReservationsApi } from '@/lib/api/admin/adminDashboard'; // API 함수 경로
 import { RawReservationData, ReservationStatus, ProcessedReservation} from '@/types/dashBoardAdmin';
+import Link from 'next/link';
 
 const statusColors: Record<ReservationStatus, string> = {
     '1차 승인 대기': '#FFBB00',
@@ -15,14 +16,6 @@ const statusColors: Record<ReservationStatus, string> = {
     '긴급': '#FF0000',
     '신한': '#0046FF',
 };
-
-// --- 컴포넌트 ---
-const SummaryCard = ({ item }: { item: DashBoardCard }) => (
-    <CardContainer>
-        <Badge status={item.label as ReservationStatus}>{item.label}</Badge>
-        <Count>{item.count}건</Count>
-    </CardContainer>
-);
 
 const CalendarHeader = ({ date, setDate }: { date: Date, setDate: React.Dispatch<React.SetStateAction<Date>> }) => {
     const changeMonth = (amount: number) => {
@@ -163,7 +156,13 @@ export default function Dashboard() {
         <DashboardContainer>
             <Title>대시보드</Title>
             <SummaryContainer>
-                {cardData.map(item => <SummaryCard key={item.label} item={item} />)}
+                {/* SummaryCard를 Link 컴포넌트로 감싸고, href 속성으로 이동할 경로를 지정합니다. */}
+                {cardData.map(item => (
+                    <StyledLink href="/admin/reservation" key={item.label}>
+                        <Badge status={item.label as ReservationStatus}>{item.label}</Badge>
+                        <Count>{item.count}건</Count>
+                    </StyledLink>
+                ))}
             </SummaryContainer>
             <CalendarSection>
                 {/* 월 변경 핸들러는 CalendarHeader에서 관리 */}
@@ -398,4 +397,28 @@ const Dot = styled.div<{ color: string }>`
     height: 11px;
     border-radius: 50%;
     background-color: ${props => props.color};
+`;
+const StyledLink = styled(Link)`
+    text-decoration: none; // 기본 밑줄 제거
+    color: inherit; // 글씨 색상 상속
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    
+    // SummaryCard의 스타일을 그대로 가져옵니다.
+    background: #FFFFFF;
+    border: 1px solid #E8E9E9;
+    border-radius: 12px;
+    padding: 16px;
+    
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
 `;
