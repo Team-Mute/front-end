@@ -419,10 +419,10 @@ const InfoTop = styled.div`
 
 const statusStyles = {
   '진행중': { bg: '#FFF7E8', color: '#FDB01F' },
-  '예약완료': { bg: '#FFF1F7', color: '#EA448C' },
-  '이용완료': { bg: '#F2FBF8', color: '#00B27A' }, // '이용완료'가 '완료'로 매핑되어 사용됨
-  '취소': { bg: '#F3F4F4', color: '#8C8F93' },
-  '반려': { bg: '#FFF2F2', color: '#FF0000' }, // 새로 추가된 반려 스타일
+  '예약완료': { bg: '#F2FBF8', color: '#34C759' },
+  '이용완료': { bg: '#F0F1F5', color: '#8496C5' },
+  '취소': { bg: '#F3F4F4', color: '#8E8E93' },
+  '반려': { bg: '#FCF2FF', color: '#C800FF' }, // 새로 추가된 반려 스타일
 };
 
 const StatusBadge = styled.div<StatusBadgeProps>`
