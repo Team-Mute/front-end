@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "@emotion/styled";
 import colors from "@/styles/theme";
-import Button from "../common/button/Button";
+import Button from "@/components/common/button/Button";
 
 const maxWidth = "22rem";
 
@@ -99,11 +99,11 @@ const ConfirmModal = ({ isOpen, title, subtitle, onConfirm, onCancel }: ConfirmM
         </SubtitleWrapper>
 
         <TwoButtonWrapper>
-          <Button onClick={onConfirm} isActive={true} width={"48%"}>
-            확인
-          </Button>
           <Button onClick={onCancel} isActive={false} width={"48%"}>
             취소
+          </Button>
+          <Button onClick={onConfirm} isActive={true} width={"48%"}>
+            확인
           </Button>
         </TwoButtonWrapper>
       </ModalContainer>

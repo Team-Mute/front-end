@@ -33,7 +33,7 @@ const BulkApproveModal = ({ isOpen, reservations, onConfirm, onCancel }: BulkApp
                         reservations.map(res => (
                             <ReservationItem key={res.reservationId}>
                                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                    <StatusTag css={getStatusStyle(res.reservationStatusName)} isApprovable={false}>
+                                    <StatusTag css={getStatusStyle(res.statusId)} isApprovable={false}>
                                         {res.reservationStatusName}
                                     </StatusTag>
                                     <span style={{ fontWeight: 'bold', color: '#333', wordBreak: 'break-all' }}>

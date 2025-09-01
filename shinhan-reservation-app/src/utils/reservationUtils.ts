@@ -19,19 +19,19 @@ export const formatTimeRange = (fromStr: string, toStr: string): string => {
     return `${fromHours}:${fromMinutes}~${toHours}:${toMinutes}`;
 };
 
-export const getStatusStyle = (status: string) => {
-    switch (status) {
-        case '1차 승인 대기':
+export const getStatusStyle = (statusId: number) => {
+    switch (statusId) {
+        case 1: // 1차 승인 대기
             return css`background-color: #FFFCF2; color: #FFBB00;`;
-        case '2차 승인 대기':
+        case 2: // 2차 승인 대기
             return css`background-color: #FFF8F2; color: #FF7300;`;
-        case '최종 승인 완료':
+        case 3: // 최종 승인 완료
             return css`background-color: #F2FBF8; color: #34C759;`;
-        case '반려':
+        case 4: // 반려
             return css`background-color: #FCF2FF; color: #C800FF;`;
-        case '예약 취소':
+        case 5: // 예약 취소
             return css`background-color: #F3F4F4; color: #8E8E93;`;
-        case '이용 완료':
+        case 6: // 이용 완료
             return css`background-color: #F0F1F5; color: #8496C5;`;
         default:
             return css`background-color: #f5f5f5; color: #757575;`;

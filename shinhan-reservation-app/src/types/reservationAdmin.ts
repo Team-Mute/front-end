@@ -19,6 +19,8 @@ export interface Reservation {
     isApprovable: boolean;
     isRejectable: boolean;
     previsits: Previsit[];
+    regionId: number;
+    statusId: number;
 }
 
 export interface ReservationResponse {
@@ -39,3 +41,41 @@ export interface ReservationsParams {
     isEmergencyOnly?: boolean;
 }
 
+/**
+ * 상세 보기 API 응답에 대한 타입
+ * 이전에 사용하던 Reservation 타입과 구조가 다름
+ */
+export interface ReservationDetail {
+  reservationId: number;
+  spaceName: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+  };
+  reservationPurpose: string;
+  reservationHeadcount: number;
+  reservationFrom: string;
+  reservationTo: string;
+  orderId: string;
+  reservationStatusName: string;
+  isApprovable: boolean;
+  isRejectable: boolean;
+  previsits?: {
+    previsitFrom: string;
+    previsitTo: string;
+  }[];
+}
+
+export interface ApproveResponse {
+    total: number;
+    successCount: number;
+    failureCount: number;
+    results: {
+        reservationId: number;
+        success: boolean;
+        message: string;
+    }[];
+}
