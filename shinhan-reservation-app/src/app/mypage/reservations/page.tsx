@@ -1,17 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
 import MySideBar from "@/components/sideBar";
-import closeIcon from "@/styles/icons/close.svg"
+import closeIcon from "@/styles/icons/close.svg";
 import { useRouter } from "next/navigation";
+import { getReservationListApi } from "@/lib/api/reservation";
+import ReservationInfoModal from "@/components/modal/ReservationInfoModal";
 
-// --- 타입 정의 ---
+// --- API 응답을 위한 타입 정의 ---
+interface Previsit {
+  previsitId: number;
+  previsitFrom: string;
+  previsitTo: string;
+}
 
+interface ApiResponseReservation {
+  reservationId: number;
+  reservationStatusName: '진행중' | '예약완료' | '이용완료' | '취소' | '반려';
+  orderId: string;
+  spaceName: string;
+  reservationFrom: string;
+  reservationTo: string;
+  previsits: Previsit[];
+}
+
+// --- UI에서 사용할 타입 정의 ---
 interface Reservation {
-  id: string;
-  status: '진행중' | '예약완료' | '완료' | '취소';
-  location: string;
+  reservationId: number;
+  id: string; // orderId
+  status: '진행중' | '예약완료' | '이용완료' | '취소' | '반려';
+  location: string; // spaceName
   mainDate: string;
   mainTime: string;
   preVisitDate?: string;
@@ -26,166 +45,220 @@ interface StatusBadgeProps {
   status: Reservation['status'];
 }
 
+// --- 유틸리티 함수 ---
+const formatDateTime = (isoString: string) => {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
 
-// --- 임시 데이터 ---
-const mockReservations: Reservation[] = [
-  // ... (기존 임시 데이터와 동일)
-    {
-    id: 'BL_25082245',
-    status: '진행중',
-    location: '명동 신한스퀘어브릿지 지하1층 메인홀',
-    mainDate: '2025년 8월 15일 (금)',
-    mainTime: '14:00 ~ 16:00',
-    preVisitDate: '2025년 8월 14일 (목)',
-    preVisitTime: '14:30 ~ 15:00',
-  },
-  {
-    id: 'BL_25082246',
-    status: '예약완료',
-    location: '강남 신한스퀘어브릿지 1층 라운지',
-    mainDate: '2025년 9월 2일 (화)',
-    mainTime: '10:00 ~ 11:00',
-  },
-  {
-    id: 'BL_25082247',
-    status: '완료',
-    location: '제주 신한스퀘어브릿지 2층 세미나실',
-    mainDate: '2025년 7월 1일 (화)',
-    mainTime: '15:00 ~ 17:00',
-  },
-  {
-    id: 'BL_25082248',
-    status: '진행중',
-    location: '명동 신한스퀘어브릿지 지하1층 메인홀',
-    mainDate: '2025년 8월 18일 (월)',
-    mainTime: '11:00 ~ 12:00',
-  },
-  {
-    id: 'BL_25082249',
-    status: '취소',
-    location: '인천 신한스퀘어브릿지 3층 이벤트홀',
-    mainDate: '2025년 8월 20일 (수)',
-    mainTime: '18:00 ~ 20:00',
-  },
-  {
-    id: 'BL_25082250',
-    status: '취소',
-    location: '인천 신한스퀘어브릿지 3층 이벤트홀',
-    mainDate: '2025년 8월 20일 (수)',
-    mainTime: '18:00 ~ 20:00',
-  },
-  {
-    id: 'BL_25082251',
-    status: '취소',
-    location: '인천 신한스퀘어브릿지 3층 이벤트홀',
-    mainDate: '2025년 8월 20일 (수)',
-    mainTime: '18:00 ~ 20:00',
-  },
-];
+  const formattedDate = `${year}년 ${month}월 ${day}일 (${dayOfWeek})`;
+  const formattedTime = `${hours}:${minutes}`;
+  
+  return { formattedDate, formattedTime };
+};
 
-const TABS = ["전체", "진행중", "예약완료", "완료", "취소"];
+const mapApiDataToReservation = (apiData: ApiResponseReservation): Reservation => {
+  const { formattedDate: mainDate, formattedTime: fromTime } = formatDateTime(apiData.reservationFrom);
+  const { formattedTime: toTime } = formatDateTime(apiData.reservationTo);
+  
+  let preVisitInfo: { preVisitDate?: string; preVisitTime?: string } = {};
+  if (apiData.previsits && apiData.previsits.length > 0) {
+    const previsit = apiData.previsits[0];
+    const { formattedDate: preDate, formattedTime: preFromTime } = formatDateTime(previsit.previsitFrom);
+    const { formattedTime: preToTime } = formatDateTime(previsit.previsitTo);
+    preVisitInfo = {
+      preVisitDate: preDate,
+      preVisitTime: `${preFromTime} ~ ${preToTime}`,
+    };
+  }
+
+  // API의 '이용완료'를 UI의 '완료'로 매핑
+  const uiStatus = apiData.reservationStatusName;
+
+  return {
+    reservationId: apiData.reservationId,
+    id: apiData.orderId,
+    status: uiStatus,
+    location: apiData.spaceName,
+    mainDate: mainDate,
+    mainTime: `${fromTime} ~ ${toTime}`,
+    ...preVisitInfo,
+  };
+};
+
+// --- 상수 정의 ---
+const TABS = ["전체", "진행중", "예약완료", "이용완료", "취소"];
+
+// UI 탭 이름을 API 필터 옵션으로 매핑
+const TAB_TO_API_FILTER: { [key: string]: string } = {
+  "전체": "", 
+  "진행중": "진행중",
+  "예약완료": "예약완료",
+  "이용완료": "이용완료",
+  "취소": "취소",
+};
 
 // --- 컴포넌트 ---
-
 export default function MyPageReservations() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("전체");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const filteredReservations = mockReservations.filter(reservation => {
-    const matchesTab = activeTab === '전체' || reservation.status === activeTab;
-    const matchesSearch = reservation.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
+  const [selectedReservationStatus, setSelectedReservationStatus] = useState<string>('');
+
+  useEffect(() => {
+    const fetchReservations = async () => {
+      setIsLoading(true);
+      try {
+        const filterOption = TAB_TO_API_FILTER[activeTab];
+        const response = await getReservationListApi(filterOption);
+        
+        if (response && response.content) {
+          const mappedData = response.content.map(mapApiDataToReservation);
+          setReservations(mappedData);
+        } else {
+          setReservations([]);
+        }
+      } catch (error) {
+        console.error("예약 목록을 불러오는 데 실패했습니다:", error);
+        setReservations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReservations();
+  }, [activeTab]);
+
+  const filteredReservations = reservations.filter(reservation =>
+    reservation.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleOpenModal = (reservationId: number, status: string) => {
+    setSelectedReservationId(reservationId);
+    setSelectedReservationStatus(status);
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = (isChanged?: boolean) => {
+    setIsModalOpen(false);
+    setSelectedReservationId(null);
+    setSelectedReservationStatus('');
+
+    if (isChanged) {
+      setActiveTab('취소');
+    }
+  };
+  
+  const renderContent = () => {
+    if (isLoading) {
+      return <EmptyState>로딩 중...</EmptyState>;
+    }
+    if (filteredReservations.length === 0) {
+      return <EmptyState>예약 내역이 없습니다.</EmptyState>;
+    }
+    return filteredReservations.map((reservation) => (
+      <ReservationItem key={reservation.id}>
+        <ItemContent>
+          <InfoSection>
+            <InfoTop>
+              <StatusBadge status={reservation.status}>{reservation.status}</StatusBadge>
+              <ReservationNumber>예약번호: {reservation.id}</ReservationNumber>
+            </InfoTop>
+            <Location>{reservation.location}</Location>
+            <Schedule>
+              <DateTime>
+                <span>{reservation.mainDate}</span>
+                <Separator />
+                <span>{reservation.mainTime}</span>
+              </DateTime>
+              {reservation.preVisitDate && (
+                <SubDateTime>
+                  <span>사전답사 {reservation.preVisitDate}</span>
+                  <Separator isSubtle />
+                  <span>{reservation.preVisitTime}</span>
+                </SubDateTime>
+              )}
+            </Schedule>
+          </InfoSection>
+          <DetailsButton onClick={() => handleOpenModal(reservation.reservationId, reservation.status)}>상세보기</DetailsButton>
+        </ItemContent>
+      </ReservationItem>
+    ));
+  };
 
   return (
-<Container>
-    <MySideBar children={<></>}/>
-    <Wrapper>
-      <ModalHeader>
-        <Title>공간예약 내역</Title>
-        <CloseButton onClick={() => {
-                  router.push("/mypage");
-                }}>
-            <CloseIcon/>
-        </CloseButton>
-      </ModalHeader>
+    <Container>
+      <MySideBar children={<></>} />
+      <Wrapper>
+        <ModalHeader>
+          <Title>공간예약 내역</Title>
+          <CloseButton onClick={() => router.push("/mypage")}>
+            <CloseIcon />
+          </CloseButton>
+        </ModalHeader>
 
-      <TabsContainer>
-        {TABS.map((tab) => (
-          <TabItem
-            key={tab}
-            isActive={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </TabItem>
-        ))}
-      </TabsContainer>
+        <TabsContainer>
+          {TABS.map((tab) => (
+            <TabItem
+              key={tab}
+              isActive={activeTab === tab}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </TabItem>
+          ))}
+        </TabsContainer>
 
-      <SearchContainer>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 21L16.65 16.65" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        <SearchInput 
-          type="text" 
-          placeholder="예약번호로 찾기"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+        <SearchContainer>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M21 21L16.65 16.65" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <SearchInput
+            type="text"
+            placeholder="예약번호로 찾기"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchContainer>
+        
+        <ReservationList>
+          {renderContent()}
+        </ReservationList>
+        <ReservationInfoModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          reservationId={selectedReservationId}
+          status={selectedReservationStatus}
         />
-      </SearchContainer>
-      
-      <ReservationList>
-        {filteredReservations.map((reservation) => (
-          <ReservationItem key={reservation.id}>
-            <ItemContent>
-              <InfoSection>
-                <InfoTop>
-                  <StatusBadge status={reservation.status}>{reservation.status}</StatusBadge>
-                  <ReservationNumber>예약번호: {reservation.id}</ReservationNumber>
-                </InfoTop>
-                <Location>{reservation.location}</Location>
-                <Schedule>
-                  <DateTime>
-                    <span>{reservation.mainDate}</span>
-                    <Separator />
-                    <span>{reservation.mainTime}</span>
-                  </DateTime>
-                  {reservation.preVisitDate && (
-                    <SubDateTime>
-                      <span>사전답사 {reservation.preVisitDate}</span>
-                      <Separator isSubtle/>
-                      <span>{reservation.preVisitTime}</span>
-                    </SubDateTime>
-                  )}
-                </Schedule>
-              </InfoSection>
-              <DetailsButton>상세보기</DetailsButton>
-            </ItemContent>
-          </ReservationItem>
-        ))}
-      </ReservationList>
-    </Wrapper>
+      </Wrapper>
     </Container>
   );
 }
 
-// --- 스타일 컴포넌트 ---
-const CloseIcon = styled(closeIcon)`
-`;
+// --- 스타일 컴포넌트 (이하 동일) ---
+const CloseIcon = styled(closeIcon)``;
 
 const Container = styled.div`
   display: flex;
   flex-direction: row;
   position: relative;
-`
+`;
 
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
   width: 100%;
-  padding-right:81px;
-  font-family: 'Pretendard', sans-serif;  
-  
+  padding-right: 81px;
+  font-family: 'Pretendard', sans-serif;
+
   @media (max-width: 768px) {
     display: flex;
     flex-direction: column;
@@ -203,14 +276,14 @@ const Wrapper = styled.div`
 `;
 
 const ModalHeader = styled.div`
-    display: none; /* 데스크톱에서는 헤더 숨김 */
+  display: none;
 
-    @media (max-width: 768px) {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-    }
+  @media (max-width: 768px) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
 `;
 
 const Title = styled.h1`
@@ -225,18 +298,17 @@ const Title = styled.h1`
 `;
 
 const CloseButton = styled.button`
-    background: none;
-    border: none;
-    cursor: pointer;
+  background: none;
+  border: none;
+  cursor: pointer;
 `;
-
 
 const TabsContainer = styled.nav`
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  
+
   @media (max-width: 768px) {
     overflow-x: auto;
     padding-bottom: 8px;
@@ -254,7 +326,7 @@ const TabItem = styled.button<TabItemProps>`
   font-size: 16px;
   color: ${(props) => (props.isActive ? '#191F28' : '#8C8F93')};
   border-bottom-color: ${(props) => (props.isActive ? '#191F28' : 'transparent')};
-  white-space: nowrap; /* 탭 이름이 줄바꿈되지 않도록 설정 */
+  white-space: nowrap;
   &:hover { color: #191F28; }
 `;
 
@@ -288,16 +360,25 @@ const ReservationList = styled.div`
   width: 100%;
   gap: 8px;
   min-height: calc(100vh - 260px);
-  
+
   @media (min-width: 769px) {
     height: 400px;
     overflow-y: auto;
   }
 
   @media (max-width: 768px) {
-      flex: 1; /* 남은 공간을 모두 채우도록 설정 */
-      overflow-y: auto; /* 리스트가 길어지면 스크롤 */
+    flex: 1;
+    overflow-y: auto;
   }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #8C8F93;
+  font-size: 16px;
 `;
 
 const ReservationItem = styled.div`
@@ -307,15 +388,14 @@ const ReservationItem = styled.div`
   padding: 16px 0px;
 `;
 
-// 수정: 반응형 스타일 적용
 const ItemContent = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   @media (max-width: 768px) {
-    flex-direction: column; /* 작은 화면에서 세로로 쌓음 */
-    align-items: flex-start; /* 왼쪽 정렬 */
+    flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
   }
 `;
@@ -324,7 +404,7 @@ const InfoSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  
+
   @media (max-width: 768px) {
     width: 100%;
   }
@@ -334,14 +414,15 @@ const InfoTop = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap; /* 작은 화면에서 줄바꿈 허용 */
+  flex-wrap: wrap;
 `;
 
 const statusStyles = {
   '진행중': { bg: '#FFF7E8', color: '#FDB01F' },
-  '예약완료': { bg: '#EAF8F0', color: '#2DBB64' },
-  '완료': { bg: '#F3F4F4', color: '#52555B' },
-  '취소': { bg: '#FDEDED', color: '#F04438' },
+  '예약완료': { bg: '#FFF1F7', color: '#EA448C' },
+  '이용완료': { bg: '#F2FBF8', color: '#00B27A' }, // '이용완료'가 '완료'로 매핑되어 사용됨
+  '취소': { bg: '#F3F4F4', color: '#8C8F93' },
+  '반려': { bg: '#FFF2F2', color: '#FF0000' }, // 새로 추가된 반려 스타일
 };
 
 const StatusBadge = styled.div<StatusBadgeProps>`
@@ -372,7 +453,6 @@ const Schedule = styled.div`
   gap: 4px;
 `;
 
-// 수정: 반응형 스타일 적용
 const DateTime = styled.div`
   display: flex;
   align-items: center;
@@ -380,7 +460,7 @@ const DateTime = styled.div`
   font-weight: 600;
   font-size: 12px;
   color: #191F28;
-  flex-wrap: wrap; /* 작은 화면에서 줄바꿈 허용 */
+  flex-wrap: wrap;
 `;
 
 const SubDateTime = styled(DateTime)`
@@ -406,7 +486,7 @@ const DetailsButton = styled.button`
   height: 30px;
 
   @media (max-width: 768px) {
-    width: 100%; /* 작은 화면에서 버튼 너비 100% */
-    height: 40px; /* 높이 증가 */
+    width: 100%;
+    height: 40px;
   }
 `;

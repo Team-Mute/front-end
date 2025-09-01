@@ -11,7 +11,7 @@
  * 예약 가능 일 조회: getAvailableDatesApi
  * 예약 가능 시간 조회: getAvailableTimesApi
  *
- * ??? 조회: /api/reservations/rejectMassage/{reservation_id}
+ * 반려 사유 조회: /api/reservations/rejectMassage/{reservation_id}
  *
  */
 
@@ -56,11 +56,9 @@ export async function deleteReservationApi(reservationId: number) {
 // 예약 리스트 조회
 export async function getReservationListApi(
   filterOption: string,
-  page: number = 1,
-  size: number = 5
 ) {
   const { data } = await axiosClient.get("/api/reservations", {
-    params: { filterOption, page, size },
+    params: { filterOption},
   });
   return data;
 }

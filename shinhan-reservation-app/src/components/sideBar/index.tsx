@@ -1,11 +1,13 @@
 "use client";
 
 import React, { type ReactNode, useState, useEffect } from "react";
-import { usePathname } from 'next/navigation'; // 현재 경로를 알기 위해 usePathname 임포트
+import { usePathname, useRouter } from 'next/navigation'; // 현재 경로를 알기 위해 usePathname 임포트
 import styled from "@emotion/styled";
 import Link from "next/link";
 import logoutIcon from "@/styles/icons/logout.svg"; 
 import vectorIcon from "@/styles/icons/vector.svg";
+import { getUserInfoApi } from "@/lib/api/userInfo";
+import { logoutApi } from "@/lib/api/userAuth";
 
 
 interface MyPageLayoutProps {
@@ -14,21 +16,46 @@ interface MyPageLayoutProps {
 
 export default function MySideBar({ children }: MyPageLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [userName, setUserName] = useState("사용자");
 
  useEffect(() => {
     const checkIsMobile = () => setIsMobile(window.innerWidth <= 768);
     checkIsMobile();
     window.addEventListener('resize', checkIsMobile);
+
+    const fetchUserInfo = async () => {
+      try {
+        const userInfo = await getUserInfoApi();
+        if (userInfo && userInfo.userName) {
+          setUserName(userInfo.userName);
+        }
+      } catch (error) {
+        console.error("사용자 정보를 불러오는 데 실패했습니다:", error);
+      }
+    };
+
+    fetchUserInfo();
+
     return () => window.removeEventListener('resize', checkIsMobile);
  }, []);
+
+ const handleLogout = async () => {
+    try {
+      await logoutApi();
+      alert('로그아웃 되었습니다.');
+      router.push('/login'); // 로그아웃 성공 시 로그인 페이지로 이동
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      alert('로그아웃에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
 
 //  모바일이면서 예약 페이지 경로일 경우, children(예약 페이지)만 렌더링하고 레이아웃은 렌더링하지 않음
   if (isMobile && pathname.startsWith('/mypage/reservations')) {
     return <>{children}</>;
   }
-  
-  const userName = "홍길동"; 
 
   return (
     <Wrapper>
@@ -82,7 +109,7 @@ export default function MySideBar({ children }: MyPageLayoutProps) {
             </TopSection>
           </MenuContainer>
 
-          <LogoutButton>
+          <LogoutButton onClick={handleLogout}>
             <StyledLogo/>
             <span>로그아웃</span>
           </LogoutButton>
