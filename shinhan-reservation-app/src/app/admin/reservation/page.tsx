@@ -565,13 +565,13 @@ const ReservationManagementPage: React.FC = () => {
                 />
                  {/* 상세 보기 모달 추가 */}
                 <DetailModal
-                isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
-                reservationId={selectedReservationForDetail} onApproveClick={function (id: number): void {
-                    throw new Error('Function not implemented.');
-                } } onRejectClick={function (id: number): void {
-                    throw new Error('Function not implemented.');
-                } }                />
+                    isOpen={isDetailModalOpen}
+                    onClose={() => setIsDetailModalOpen(false)}
+                    reservationId={selectedReservationForDetail} onApproveClick={function (id: number): void {
+                        throw new Error('Function not implemented.');
+                    } } onRejectClick={function (id: number): void {
+                        throw new Error('Function not implemented.');
+                    } }                />
         </MainContainer>
     );
 };

@@ -67,6 +67,7 @@ export interface ReservationDetail {
     previsitFrom: string;
     previsitTo: string;
   }[];
+  statusId: number;
 }
 
 export interface ApproveResponse {
