@@ -138,16 +138,18 @@ const DetailModal: React.FC<DetailModalProps> = ({
           {isPending && reservationId && (
             <>
               <ApproveButton 
+                //disabled={!reservation.isApprovable} 
                 onClick={() => onApproveClick(reservationId)} 
-                isActive={true} 
                 width="48%"
+                isActive={reservation.isApprovable}
               >
               승인하기
             </ApproveButton>
-              <RejectButton 
+              <RejectButton
+                //disabled={!reservation.isRejectable} 
                 onClick={() => onRejectClick(reservationId)} 
-                isActive={false} 
                 width="48%"
+                isActive={reservation.isRejectable}
               >
                 반려하기
               </RejectButton>
@@ -169,7 +171,7 @@ const Overlay = styled.div`
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  z-index: 900;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -270,17 +272,19 @@ const ModalFooter = styled.div`
 const ApproveButton = styled(Button)`
   background-color: #e6efff; /* 배경색 */
   color: #0046ff; /* 글자색 */
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: #d0e0ff; /* 호버 시 배경색 */
   }
+  cursor: pointer;
 `;
 
 const RejectButton = styled(Button)`
   background-color: #fff2f2; /* 배경색 */
   color: #ff0000; /* 글자색 */
-  &:hover {
+ &:hover:not(:disabled) {
     background-color: #ffe0e0; /* 호버 시 배경색 */
   }
+  cursor: pointer;
 `;
 
 const TwoButtonWrapper = styled.div`

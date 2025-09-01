@@ -112,14 +112,6 @@ const ReservationManagementPage: React.FC = () => {
     } else {
         setSelectedItems([]);
     }
-};
-
-    const handleSelectItem = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.checked) {
-            setSelectedItems(prev => [...prev, id]);
-        } else {
-            setSelectedItems(prev => prev.filter(item => item !== id));
-        }
     };
     
     // 수정된 예약 상태 핸들러
@@ -175,26 +167,6 @@ const ReservationManagementPage: React.FC = () => {
             setIsBulkConfirmModalOpen(true);
         }
     };
-    
-    // 단건 승인 최종 확인 함수 (ConfirmModal에서 호출)
-    // const confirmSingleApprove = async () => {
-    //     if (approveTargetId === null) return;
-        
-    //     setIsConfirmApproveModalOpen(false); // 모달 즉시 닫기
-        
-    //     try {
-    //         await postApproveReservationsApi([approveTargetId]);
-    //         showAlertModal('승인 완료', '예약이 성공적으로 승인되었습니다.');
-
-    //         await loadReservations();
-    //         setSelectedItems([]);
-    //     } catch (err) {
-    //         showAlertModal('승인 실패', '예약 승인에 실패했습니다. 다시 시도해주세요.');
-    //         console.error("단건 승인 실패", err);
-    //     } finally {
-    //         setApproveTargetId(null); // 상태 초기화
-    //     }
-    // };
 
     // 단건 승인 최종 확인 함수 (ConfirmModal에서 호출)
     const confirmSingleApprove = async () => {
@@ -281,28 +253,7 @@ const ReservationManagementPage: React.FC = () => {
             ? prevSelected.filter(id => id !== reservationId)
             : [...prevSelected, reservationId]
     );
-};
-
-
-    // // 3. 모달에서 '확인' 버튼 클릭 시 실행될 일괄 승인 함수 정의
-    // const confirmBulkApprove = async () => {
-    //     setIsBulkConfirmModalOpen(false); // 모달 즉시 닫기
-    //     try {
-    //         // 선택된 모든 항목에 대해 API를 호출
-    //         await postApproveReservationsApi(selectedItems); 
-
-    //         // 성공 알림 모달
-    //         showAlertModal('승인 완료', '선택하신 예약이 성공적으로 승인되었습니다.');
-            
-    //         // 데이터 다시 로드 및 선택 초기화
-    //         await loadReservations();
-    //         setSelectedItems([]); 
-    //     } catch (err) {
-    //         // 실패 알림 모달
-    //         showAlertModal('승인 실패', '일괄 승인에 실패했습니다. 다시 시도해주세요.');
-    //         console.error("일괄 승인 실패", err);
-    //     }
-    // };
+    };
 
     // 반려하기 버튼을 눌렀을 때 호출되는 함수
     const handleReject = (reservationId: number) => {
@@ -337,6 +288,17 @@ const ReservationManagementPage: React.FC = () => {
     const handleDetailClick = (reservationId: number) => {
         setSelectedReservationForDetail(reservationId);
         setIsDetailModalOpen(true);
+    };
+
+    // DetailModal을 닫는 함수
+    const handleDetailModalClose = () => {
+        setIsDetailModalOpen(false);
+    };
+    
+    // InfoModal을 닫는 함수
+    const handleInfoModalClose = () => {
+        setIsInfoModalOpen(false);
+        setIsDetailModalOpen(false);
     };
 
     const approvableReservations = reservations.filter(res => res.isApprovable);
@@ -527,7 +489,7 @@ const ReservationManagementPage: React.FC = () => {
                 {/* InfoModal(알림) 컴포넌트*/}
                 <InfoModal
                     isOpen={isInfoModalOpen}
-                    onClose={() => setIsInfoModalOpen(false)} // '확인' 버튼 클릭 시 모달 닫기
+                    onClose={handleInfoModalClose} // '확인' 버튼 클릭 시 모달 닫기
                     title={infoModalTitle}
                     subtitle={infoModalSubtitle}
                 />
@@ -566,12 +528,11 @@ const ReservationManagementPage: React.FC = () => {
                  {/* 상세 보기 모달 추가 */}
                 <DetailModal
                     isOpen={isDetailModalOpen}
-                    onClose={() => setIsDetailModalOpen(false)}
-                    reservationId={selectedReservationForDetail} onApproveClick={function (id: number): void {
-                        throw new Error('Function not implemented.');
-                    } } onRejectClick={function (id: number): void {
-                        throw new Error('Function not implemented.');
-                    } }                />
+                    onClose={handleDetailModalClose}
+                    onApproveClick={handleApprove} 
+                    onRejectClick={handleReject}
+                    reservationId={selectedReservationForDetail} 
+                    />
         </MainContainer>
     );
 };
