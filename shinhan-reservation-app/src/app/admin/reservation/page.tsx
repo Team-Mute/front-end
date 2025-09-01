@@ -11,8 +11,8 @@ import { css } from '@emotion/react';
 import styled from '@emotion/styled';
 import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
-import { getReservationApi, postApproveReservationsApi, postRejectReservationApi } from '@/lib/api/admin/adminReservation';
-import { Previsit, Reservation, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
+import { getFlagOptions, getRegionOptions, getReservationApi, getStatusOptions, postApproveReservationsApi, postRejectReservationApi } from '@/lib/api/admin/adminReservation';
+import { FlagOption, Previsit, RegionOption, Reservation, ReservationResponse, ReservationsParams, StatusOption } from "@/types/reservationAdmin";
 import InfoModal from '@/components/modal/InfoModal';
 import BulkApproveModal from '@/components/modal/reservationAdmin/BulkApproveModal';
 import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
@@ -21,32 +21,25 @@ import DetailModal from '@/components/modal/reservationAdmin/DetailModal';
 import ConfirmModal from '@/components/modal/reservationAdmin/ConfirmModal';
 
 const ReservationManagementPage: React.FC = () => {
-       // 1. API 데이터 및 로딩 관련 상태
+    // API 데이터 및 로딩 관련 상태
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // 2. 검색 및 필터링 관련 상태
-    const [keyword, setKeyword] = useState('');
-    const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
-    const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
-    const [isShinhanOnly, setIsShinhanOnly] = useState(false);
-    const [isEmergencyOnly, setIsEmergencyOnly] = useState(false);
-
-    // 3. 드롭다운 UI 상태
+    // 드롭다운 UI 상태
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState('예약 상태 전체');
     const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
     const [selectedBranch, setSelectedBranch] = useState('지점');
 
-    // 4. 페이지네이션 관련 상태
+    // 페이지네이션 관련 상태
     const [uiCurrentPage, setUiCurrentPage] = useState(1); 
     const [totalPages, setTotalPages] = useState(1);
     
-    // 5. 체크박스 선택 관련 상태
+    // 체크박스 선택 관련 상태
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
     
-    //6. 모달
+    // 모달
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [infoModalTitle, setInfoModalTitle] = useState('');
     const [infoModalSubtitle, setInfoModalSubtitle] = useState('');
@@ -72,36 +65,68 @@ const ReservationManagementPage: React.FC = () => {
     const statusOptions = Object.keys(statusMap);
     const branchOptions = Object.keys(branchMap);
 
-    //API 호출 로직을 분리한 함수로 대체
-     const loadReservations = async () => {
+    // 필터링 옵션 상태
+    const [statuses, setStatuses] = useState<StatusOption[]>([]);
+    const [regions, setRegions] = useState<RegionOption[]>([]);
+    const [flags, setFlags] = useState<FlagOption[]>([]);
+
+    // 드롭다운 선택 상태
+    const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
+    const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+
+    // 필터링 API 호출 시 상태
+    const [keyword, setKeyword] = useState('');
+    const [isShinhan, setIsShinhan] = useState(false);
+    const [isEmergency, setIsEmergency] = useState(false);
+
+    // 필터 옵션 데이터를 가져오는 useEffect
+    useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                // 분리한 API 함수들을 호출
+                const statusData = await getStatusOptions();
+                const regionData = await getRegionOptions();
+                const flagData = await getFlagOptions();
+
+                setStatuses(statusData);
+                setRegions(regionData);
+                setFlags(flagData);
+            } catch (error) {
+                console.error("필터 옵션 로딩 실패:", error);
+                // 사용자에게 오류 알림 로직 추가
+            }
+        };
+        fetchOptions();
+    }, []);
+
+        //API 호출 로직을 분리한 함수로 대체
+        const loadReservations = async () => {
         setIsLoading(true);
-        setError(null);
+        
         try {
-            const data = await getReservationApi({
-                page: uiCurrentPage, 
-                keyword,
-                statusId: selectedStatusId,
+            const response = await getReservationApi({
+                page: uiCurrentPage,
+                size: 5,
+                keyword: keyword,
                 regionId: selectedRegionId,
-                isShinhanOnly,
-                isEmergencyOnly,
+                statusId: selectedStatusId,
+                isShinhan: isShinhan,
+                isEmergency: isEmergency,
             });
-            
-            setReservations(data.content);
-            setTotalPages(data.totalPages);
-            
+
+            setReservations(response.content);
+            setTotalPages(response.totalPages);
         } catch (err) {
-            // 에러 발생 시 `showAlertModal` 호출
-            showAlertModal('오류 발생', '데이터를 불러오지 못했습니다. 다시 시도해주세요.');
+            console.error('예약 목록을 불러오는 데 실패했습니다:', err);
         } finally {
             setIsLoading(false);
         }
     };
-    
-   // 첫 페이지 로딩 시에만 호출
+
+    // 의존성 배열에 모든 필터 상태 추가
     useEffect(() => {
         loadReservations();
-    }, []); // 의존성 배열을 비워 첫 렌더링 시에만 실행
-
+    }, [uiCurrentPage, keyword, selectedStatusId, selectedRegionId, isShinhan, isEmergency]);
 
     // UI 핸들러 함수들
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,51 +340,69 @@ const ReservationManagementPage: React.FC = () => {
                 <FilterSearchWrapper>
                     {/* 예약 상태 드롭다운 */}
                     <DropdownContainer>
-                        <DropdownButton onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}>
-                            <span>{selectedStatus === '전체' ? '예약 상태 전체' : selectedStatus}</span>
-                            <FaChevronDown css={css`margin-left: 0.5rem; font-size: 0.75rem;`} />
-                        </DropdownButton>
-                        {isStatusDropdownOpen && (
-                            <DropdownMenu>
-                                {statusOptions.map(status => (
-                                    <DropdownItem key={status} onClick={() => handleStatusSelect(status)}>
-                                        {status}
-                                    </DropdownItem>
-                                ))}
-                            </DropdownMenu>
-                        )}
+                        <StyledSelect onChange={(e) => {
+                            const value = e.target.value === '' ? null : Number(e.target.value);
+                            setSelectedStatusId(value);
+                            setUiCurrentPage(1);
+                        }}>
+                            <option value="">예약 상태 전체</option>
+                            {statuses.map(status => (
+                                <option key={status.id} value={status.id}>{status.label}</option>
+                            ))}
+                        </StyledSelect>
                     </DropdownContainer>
 
-                    {/* 지점 드롭다운 */}
+                    {/* 지점 드롭다운도 동일하게 적용 */}
                     <DropdownContainer>
-                        <DropdownButton onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}>
-                            <span>{selectedBranch === '전체' ? '지점' : selectedBranch}</span>
-                            <FaChevronDown css={css`margin-left: 0.5rem; font-size: 0.75rem;`} />
-                        </DropdownButton>
-                        {isBranchDropdownOpen && (
-                            <DropdownMenu>
-                                {branchOptions.map(branch => (
-                                    <DropdownItem key={branch} onClick={() => handleBranchSelect(branch)}>
-                                        {branch}
-                                    </DropdownItem>
-                                ))}
-                            </DropdownMenu>
-                        )}
+                        <StyledSelect onChange={(e) => {
+                            const value = e.target.value === '' ? null : Number(e.target.value);
+                            setSelectedRegionId(value);
+                            setUiCurrentPage(1);
+                        }}>
+                            <option value="">지점</option>
+                            {regions.map(region => (
+                                <option key={region.regionId} value={region.regionId}>{region.regionName}</option>
+                            ))}
+                        </StyledSelect>
                     </DropdownContainer>
-
                     <SearchInputContainer>
-                        <SearchInput type="text" placeholder="예약자명, 공간으로 검색" />
-                        <span css={css`
-                            position: absolute;
-                            right: 0.75rem;
-                            top: 50%;
-                            transform: translateY(-50%);
-                            color: #9ca3af;
-                        `}></span>
+                       <SearchInput 
+                            type="text" 
+                            placeholder="예약자명, 공간으로 검색"
+                            // 입력창의 현재 값을 keyword 상태와 연결
+                            value={keyword}
+                            // 입력값이 변경될 때마다 keyword 상태 업데이트
+                            onChange={(e) => setKeyword(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    // 엔터 키를 누르면 페이지를 1로 초기화하고
+                                    setUiCurrentPage(1);
+                                    // useEffect가 keyword 상태 변경을 감지하여 loadReservations를 호출
+                                }
+                            }}
+                        />
                     </SearchInputContainer>
+
                     <ActionButtons>
-                        <FilterButton>신한 예약 보기</FilterButton>
-                        <FilterButton>긴급 예약 보기</FilterButton>
+                        {flags.map(flag => (
+                            // 신한 예약 보기 / 긴급 예약 보기 Flag
+                            <FilterButton 
+                                key={flag.key}
+                                onClick={() => {
+                                    if (flag.key === 'isShinhan') {
+                                        setIsShinhan(prev => !prev);
+                                        setIsEmergency(false);
+                                    } else if (flag.key === 'isEmergency') {
+                                        setIsEmergency(prev => !prev);
+                                        setIsShinhan(false);
+                                    }
+                                    setUiCurrentPage(1);
+                                }} 
+                                isActive={flag.key === 'isShinhan' ? isShinhan : isEmergency}
+                            >
+                                {flag.label}
+                            </FilterButton>
+                        ))}
                     </ActionButtons>
                 </FilterSearchWrapper>
 
@@ -398,7 +441,6 @@ const ReservationManagementPage: React.FC = () => {
                                         id={`checkbox-${reservation.reservationId}`}
                                         checked={selectedItems.includes(reservation.reservationId)}
                                         onChange={() => handleSingleSelect(reservation.reservationId, reservation.isApprovable)} // 함수에 isApprovable 전달
-                                        // 여기를 수정합니다.
                                         disabled={!reservation.isApprovable}
                                     />
                                     <CustomCheckbox isChecked={selectedItems.includes(reservation.reservationId)}>
@@ -634,117 +676,93 @@ const FilterSearchWrapper = styled.div`
 `;
 
 const DropdownContainer = styled.div`
-    position: relative;
-    width: 100%;
-    @media (min-width: 768px) {
-        width: auto;
-    }
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 12px;
+  
+  // 너비를 유연하게 조절
+  flex: 1; 
+  min-width: 60px; 
+  max-width: 150px; 
+
+  height: 41px;
+  background: #F3F4F4;
+  border-radius: 12px;
 `;
 
-const DropdownButton = styled.button`
-    /* 피그마 CSS 기반 스타일 적용 */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    gap: 12px;
-
-    height: 41px;
-
-    background: #F3F4F4;
-    border: none;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #4B5563;
-    width: 100%;
-    cursor: pointer;
-    &:hover {
-        background-color: #e0e0e0;
-    }
-    @media (min-width: 768px) {
-        width: auto;
-    }
-`;
-const DropdownMenu = styled.ul`
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
-    background-color: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin-top: 0.5rem;
-    list-style: none;
-    padding: 0.5rem 0;
-    width: 100%;
-    @media (min-width: 768px) {
-        width: auto;
-    }
+// select 태그에 직접 적용할 스타일
+const StyledSelect = styled.select`
+  border: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  color: #1A1A1A;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+  }
 `;
 
-const DropdownItem = styled.li`
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    color: #4b5563;
-    &:hover {
-        background-color: #f3f4f6;
-    }
-`;
-
-const FilterButton = styled.button`
+const FilterButton = styled.button<{ isActive?: boolean }>`
     flex-shrink: 0;
     display: flex;
     align-items: center;
     padding: 8px 12px;
-    background: #F3F4F4;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 500;
-    color: #4B5563;
-    transition: background-color 0.2s ease;
     border: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    
+    // 비활성화 시 스타일
+    background-color: #F3F4F4;
+    color: #4B5563;
+    
+    // 활성화 시 스타일 (props.isActive가 true일 때 적용)
+    ${props => props.isActive && css`
+        background-color: #F2F6FF;
+        color: #0046FF;
+    `}
+
     &:hover {
-        background-color: #e0e0e0;
+        background-color: ${props => props.isActive ? '#d1e1ff' : '#e0e0e0'};
     }
 `;
 
 const SearchInputContainer = styled.div`
-    /* 피그마 CSS 기반 스타일 적용 */
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 8px 12px;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
 
-    height: 41px;
-    background: #F3F4F4;
-    border-radius: 12px;
-    
-    /* 기존 스타일 유지 및 일부 조정 */
-    position: relative;
-    flex: 1;
-    width: 100%;
+  /* 너비 조절 */
+  flex: 1; /* 남은 공간을 모두 채우도록 변경 */
+  min-width: 250px; /* 최소 너비를 250px로 늘려 너무 좁아지지 않게 함 */
+  max-width: 500px; /* 최대 너비를 500px로 제한 */
+  height: 41px;
+
+  background: #F3F4F4;
+  border-radius: 12px;
 `;
 
 const SearchInput = styled.input`
-    /* 피그마 CSS 기반 스타일 적용 */
-    width: 100%;
-    height: 100%;
-    padding: 0; /* 부모 컨테이너에 패딩을 적용했으므로 0으로 설정 */
-    border: none; /* 부모 컨테이너에 배경을 적용했으므로 테두리 제거 */
-    background: transparent; /* 부모 컨테이너의 배경색이 보이도록 설정 */
-    
-    &:focus {
-        outline: none;
-        box-shadow: none; /* 포커스 시 박스 섀도우 제거 */
-    }
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #1A1A1A;
+  
+  &:focus {
+    outline: none;
+  }
 `;
-
 const ActionButtons = styled.div`
     display: flex;
+    justify-content: flex-end; 
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;

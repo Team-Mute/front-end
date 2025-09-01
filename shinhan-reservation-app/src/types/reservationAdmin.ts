@@ -34,11 +34,12 @@ export interface ReservationResponse {
 
 export interface ReservationsParams {
     page: number;
+    size: number;
     keyword?: string;
     statusId?: number | null;
     regionId?: number | null;
-    isShinhanOnly?: boolean;
-    isEmergencyOnly?: boolean;
+    isShinhan?: boolean;
+    isEmergency?: boolean;
 }
 
 /**
@@ -79,4 +80,20 @@ export interface ApproveResponse {
         success: boolean;
         message: string;
     }[];
+}
+
+// 필터링 드롭다운
+export interface StatusOption {
+  id: number;
+  label: string;
+}
+
+export interface RegionOption {
+  regionId: number;
+  regionName: string;
+}
+
+export interface FlagOption {
+  key: string;
+  label: string;
 }

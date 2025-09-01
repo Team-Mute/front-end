@@ -1,26 +1,27 @@
 import { isAxiosError } from "axios";
 import adminAxiosClient from "./adminAxiosClient";
-import { ApproveResponse, Previsit, Reservation, ReservationDetail, ReservationResponse, ReservationsParams } from "@/types/reservationAdmin";
+import { ApproveResponse, FlagOption, Previsit, RegionOption, Reservation, ReservationDetail, ReservationResponse, ReservationsParams, StatusOption } from "@/types/reservationAdmin";
 
 // 예약 관리 리스트 호출 API
 export const getReservationApi = async ({
     page,
+    size,
     keyword,
     statusId,
     regionId,
-    isShinhanOnly,
-    isEmergencyOnly,
+    isShinhan,
+    isEmergency,
 }: ReservationsParams): Promise<ReservationResponse> => {
     try {
         const params = new URLSearchParams();
         if (keyword) params.append('keyword', keyword);
         if (statusId !== null) params.append('statusId', String(statusId));
         if (regionId !== null) params.append('regionId', String(regionId));
-        if (isShinhanOnly) params.append('isShinhan', 'true');
-        if (isEmergencyOnly) params.append('isEmergency', 'true');
+        if (isShinhan) params.append('isShinhan', 'true');
+        if (isEmergency) params.append('isEmergency', 'true');
         
         params.append('page', String(page));
-        params.append('size', '5');
+        params.append('size', String(size));
 
         const url = `/api/reservations-admin/search?${params.toString()}`;
         
@@ -97,4 +98,20 @@ export const getReservationDetailApi = async (reservationId: number): Promise<Re
         console.error("데이터를 가져오는 중 오류 발생:", error);
         throw new Error('데이터를 불러오지 못했습니다. 다시 시도해주세요.');
     }
+};
+
+// 필터링 드롭 다운
+export const getStatusOptions = async (): Promise<StatusOption[]> => {
+  const response = await adminAxiosClient.get(`/api/reservations-admin/filter-options/statuses`);
+  return response.data;
+};
+
+export const getRegionOptions = async (): Promise<RegionOption[]> => {
+  const response = await adminAxiosClient.get(`/api/spaces/regions`);
+  return response.data;
+};
+
+export const getFlagOptions = async (): Promise<FlagOption[]> => {
+  const response = await adminAxiosClient.get(`/api/reservations-admin/filter-options/flags`);
+  return response.data;
 };
