@@ -1,8 +1,8 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
-import prettierPlugin from "eslint-plugin-prettier";
-import prettierConfig from "eslint-config-prettier";
+// import prettierPlugin from "eslint-plugin-prettier";
+// import prettierConfig from "eslint-config-prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,7 +16,7 @@ const eslintConfig = [
   // 👉 prettier-plugin 적용
   {
     plugins: {
-      prettier: prettierPlugin,
+      // prettier: prettierPlugin,
     },
     rules: {
       "prettier/prettier": "error", // 💥 prettier 위반 시 에러
@@ -24,7 +24,7 @@ const eslintConfig = [
   },
 
   // 👉 prettier-config 적용 (기존 ESLint 포맷팅 룰 제거)
-  prettierConfig,
+  // prettierConfig,
 ];
 
 export default eslintConfig;

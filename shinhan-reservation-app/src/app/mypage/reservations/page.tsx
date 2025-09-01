@@ -17,7 +17,7 @@ interface Previsit {
 
 interface ApiResponseReservation {
   reservationId: number;
-  reservationStatusName: '진행중' | '예약완료' | '이용완료' | '취소' | '반려';
+  reservationStatusName: "진행중" | "예약완료" | "이용완료" | "취소" | "반려";
   orderId: string;
   spaceName: string;
   reservationFrom: string;
@@ -29,7 +29,7 @@ interface ApiResponseReservation {
 interface Reservation {
   reservationId: number;
   id: string; // orderId
-  status: '진행중' | '예약완료' | '이용완료' | '취소' | '반려';
+  status: "진행중" | "예약완료" | "이용완료" | "취소" | "반려";
   location: string; // spaceName
   mainDate: string;
   mainTime: string;
@@ -42,7 +42,7 @@ interface TabItemProps {
 }
 
 interface StatusBadgeProps {
-  status: Reservation['status'];
+  status: Reservation["status"];
 }
 
 // --- 유틸리티 함수 ---
@@ -51,24 +51,29 @@ const formatDateTime = (isoString: string) => {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const dayOfWeek = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
 
   const formattedDate = `${year}년 ${month}월 ${day}일 (${dayOfWeek})`;
   const formattedTime = `${hours}:${minutes}`;
-  
+
   return { formattedDate, formattedTime };
 };
 
-const mapApiDataToReservation = (apiData: ApiResponseReservation): Reservation => {
-  const { formattedDate: mainDate, formattedTime: fromTime } = formatDateTime(apiData.reservationFrom);
+const mapApiDataToReservation = (
+  apiData: ApiResponseReservation
+): Reservation => {
+  const { formattedDate: mainDate, formattedTime: fromTime } = formatDateTime(
+    apiData.reservationFrom
+  );
   const { formattedTime: toTime } = formatDateTime(apiData.reservationTo);
-  
+
   let preVisitInfo: { preVisitDate?: string; preVisitTime?: string } = {};
   if (apiData.previsits && apiData.previsits.length > 0) {
     const previsit = apiData.previsits[0];
-    const { formattedDate: preDate, formattedTime: preFromTime } = formatDateTime(previsit.previsitFrom);
+    const { formattedDate: preDate, formattedTime: preFromTime } =
+      formatDateTime(previsit.previsitFrom);
     const { formattedTime: preToTime } = formatDateTime(previsit.previsitTo);
     preVisitInfo = {
       preVisitDate: preDate,
@@ -95,11 +100,11 @@ const TABS = ["전체", "진행중", "예약완료", "이용완료", "취소"];
 
 // UI 탭 이름을 API 필터 옵션으로 매핑
 const TAB_TO_API_FILTER: { [key: string]: string } = {
-  "전체": "", 
-  "진행중": "진행중",
-  "예약완료": "예약완료",
-  "이용완료": "이용완료",
-  "취소": "취소",
+  전체: "",
+  진행중: "진행중",
+  예약완료: "예약완료",
+  이용완료: "이용완료",
+  취소: "취소",
 };
 
 // --- 컴포넌트 ---
@@ -111,8 +116,11 @@ export default function MyPageReservations() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
-  const [selectedReservationStatus, setSelectedReservationStatus] = useState<string>('');
+  const [selectedReservationId, setSelectedReservationId] = useState<
+    number | null
+  >(null);
+  const [selectedReservationStatus, setSelectedReservationStatus] =
+    useState<string>("");
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -120,7 +128,7 @@ export default function MyPageReservations() {
       try {
         const filterOption = TAB_TO_API_FILTER[activeTab];
         const response = await getReservationListApi(filterOption);
-        
+
         if (response && response.content) {
           const mappedData = response.content.map(mapApiDataToReservation);
           setReservations(mappedData);
@@ -138,7 +146,7 @@ export default function MyPageReservations() {
     fetchReservations();
   }, [activeTab]);
 
-  const filteredReservations = reservations.filter(reservation =>
+  const filteredReservations = reservations.filter((reservation) =>
     reservation.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -147,17 +155,17 @@ export default function MyPageReservations() {
     setSelectedReservationStatus(status);
     setIsModalOpen(true);
   };
-  
+
   const handleCloseModal = (isChanged?: boolean) => {
     setIsModalOpen(false);
     setSelectedReservationId(null);
-    setSelectedReservationStatus('');
+    setSelectedReservationStatus("");
 
     if (isChanged) {
-      setActiveTab('취소');
+      setActiveTab("취소");
     }
   };
-  
+
   const renderContent = () => {
     if (isLoading) {
       return <EmptyState>로딩 중...</EmptyState>;
@@ -170,7 +178,9 @@ export default function MyPageReservations() {
         <ItemContent>
           <InfoSection>
             <InfoTop>
-              <StatusBadge status={reservation.status}>{reservation.status}</StatusBadge>
+              <StatusBadge status={reservation.status}>
+                {reservation.status}
+              </StatusBadge>
               <ReservationNumber>예약번호: {reservation.id}</ReservationNumber>
             </InfoTop>
             <Location>{reservation.location}</Location>
@@ -189,7 +199,13 @@ export default function MyPageReservations() {
               )}
             </Schedule>
           </InfoSection>
-          <DetailsButton onClick={() => handleOpenModal(reservation.reservationId, reservation.status)}>상세보기</DetailsButton>
+          <DetailsButton
+            onClick={() =>
+              handleOpenModal(reservation.reservationId, reservation.status)
+            }
+          >
+            상세보기
+          </DetailsButton>
         </ItemContent>
       </ReservationItem>
     ));
@@ -197,7 +213,7 @@ export default function MyPageReservations() {
 
   return (
     <Container>
-      <MySideBar children={<></>} />
+      <MySideBar />
       <Wrapper>
         <ModalHeader>
           <Title>공간예약 내역</Title>
@@ -219,7 +235,28 @@ export default function MyPageReservations() {
         </TabsContainer>
 
         <SearchContainer>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M21 21L16.65 16.65" stroke="#8C8F93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+              stroke="#8C8F93"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M21 21L16.65 16.65"
+              stroke="#8C8F93"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           <SearchInput
             type="text"
             placeholder="예약번호로 찾기"
@@ -227,10 +264,8 @@ export default function MyPageReservations() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </SearchContainer>
-        
-        <ReservationList>
-          {renderContent()}
-        </ReservationList>
+
+        <ReservationList>{renderContent()}</ReservationList>
         <ReservationInfoModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -257,7 +292,7 @@ const Wrapper = styled.div`
   gap: 24px;
   width: 100%;
   padding-right: 81px;
-  font-family: 'Pretendard', sans-serif;
+  font-family: "Pretendard", sans-serif;
 
   @media (max-width: 768px) {
     display: flex;
@@ -289,7 +324,7 @@ const ModalHeader = styled.div`
 const Title = styled.h1`
   font-weight: 600;
   font-size: 20px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 
   @media (max-width: 768px) {
@@ -324,10 +359,13 @@ const TabItem = styled.button<TabItemProps>`
   cursor: pointer;
   font-weight: 500;
   font-size: 16px;
-  color: ${(props) => (props.isActive ? '#191F28' : '#8C8F93')};
-  border-bottom-color: ${(props) => (props.isActive ? '#191F28' : 'transparent')};
+  color: ${(props) => (props.isActive ? "#191F28" : "#8C8F93")};
+  border-bottom-color: ${(props) =>
+    props.isActive ? "#191F28" : "transparent"};
   white-space: nowrap;
-  &:hover { color: #191F28; }
+  &:hover {
+    color: #191f28;
+  }
 `;
 
 const SearchContainer = styled.div`
@@ -337,7 +375,7 @@ const SearchContainer = styled.div`
   gap: 8px;
   width: 100%;
   height: 48px;
-  background: #F3F4F4;
+  background: #f3f4f4;
   border-radius: 12px;
   box-sizing: border-box;
 `;
@@ -349,9 +387,13 @@ const SearchInput = styled.input`
   background: transparent;
   font-size: 14px;
   font-weight: 500;
-  color: #191F28;
-  &:focus { outline: none; }
-  &::placeholder { color: #8C8F93; }
+  color: #191f28;
+  &:focus {
+    outline: none;
+  }
+  &::placeholder {
+    color: #8c8f93;
+  }
 `;
 
 const ReservationList = styled.div`
@@ -377,14 +419,14 @@ const EmptyState = styled.div`
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #8C8F93;
+  color: #8c8f93;
   font-size: 16px;
 `;
 
 const ReservationItem = styled.div`
   box-sizing: border-box;
   width: 100%;
-  border-bottom: 1px solid #E8E9E9;
+  border-bottom: 1px solid #e8e9e9;
   padding: 16px 0px;
 `;
 
@@ -418,11 +460,11 @@ const InfoTop = styled.div`
 `;
 
 const statusStyles = {
-  '진행중': { bg: '#FFF7E8', color: '#FDB01F' },
-  '예약완료': { bg: '#FFF1F7', color: '#EA448C' },
-  '이용완료': { bg: '#F2FBF8', color: '#00B27A' }, // '이용완료'가 '완료'로 매핑되어 사용됨
-  '취소': { bg: '#F3F4F4', color: '#8C8F93' },
-  '반려': { bg: '#FFF2F2', color: '#FF0000' }, // 새로 추가된 반려 스타일
+  진행중: { bg: "#FFF7E8", color: "#FDB01F" },
+  예약완료: { bg: "#FFF1F7", color: "#EA448C" },
+  이용완료: { bg: "#F2FBF8", color: "#00B27A" }, // '이용완료'가 '완료'로 매핑되어 사용됨
+  취소: { bg: "#F3F4F4", color: "#8C8F93" },
+  반려: { bg: "#FFF2F2", color: "#FF0000" }, // 새로 추가된 반려 스타일
 };
 
 const StatusBadge = styled.div<StatusBadgeProps>`
@@ -430,20 +472,20 @@ const StatusBadge = styled.div<StatusBadgeProps>`
   border-radius: 4px;
   font-weight: 600;
   font-size: 11px;
-  background-color: ${props => statusStyles[props.status]?.bg || '#F3F4F4'};
-  color: ${props => statusStyles[props.status]?.color || '#52555B'};
+  background-color: ${(props) => statusStyles[props.status]?.bg || "#F3F4F4"};
+  color: ${(props) => statusStyles[props.status]?.color || "#52555B"};
 `;
 
 const ReservationNumber = styled.span`
   font-weight: 500;
   font-size: 12px;
-  color: #8C8F93;
+  color: #8c8f93;
 `;
 
 const Location = styled.h2`
   font-weight: 600;
   font-size: 16px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 `;
 
@@ -459,30 +501,30 @@ const DateTime = styled.div`
   gap: 8px;
   font-weight: 600;
   font-size: 12px;
-  color: #191F28;
+  color: #191f28;
   flex-wrap: wrap;
 `;
 
 const SubDateTime = styled(DateTime)`
   font-weight: 500;
-  color: #8C8F93;
+  color: #8c8f93;
 `;
 
 const Separator = styled.div<{ isSubtle?: boolean }>`
   width: 1px;
   height: 12px;
-  background-color: ${props => props.isSubtle ? '#E8E9E9' : '#191F28'};
+  background-color: ${(props) => (props.isSubtle ? "#E8E9E9" : "#191F28")};
 `;
 
 const DetailsButton = styled.button`
   padding: 8px 12px;
-  background: #F2F6FF;
+  background: #f2f6ff;
   border-radius: 8px;
   border: none;
   cursor: pointer;
   font-weight: 500;
   font-size: 12px;
-  color: #0046FF;
+  color: #0046ff;
   height: 30px;
 
   @media (max-width: 768px) {
