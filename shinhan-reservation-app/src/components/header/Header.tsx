@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VscThreeBars } from "react-icons/vsc";
 import { IoClose } from "react-icons/io5";
@@ -16,8 +16,13 @@ const menuItemsUser = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { accessToken, clearAuth } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -38,12 +43,18 @@ export default function Header() {
         </Left>
         {/* 데스크탑 메뉴 */}
         <Right>
-          {accessToken ? (
-            <NavButton href="/mypage/reservations">마이페이지</NavButton>
+          {mounted && accessToken ? (
+            <NavButton
+              onClick={() => {
+                router.push("/mypage/reservations");
+              }}
+            >
+              마이페이지
+            </NavButton>
           ) : (
             <NavButton aria-disabled={true}></NavButton>
           )}
-          {accessToken ? (
+          {mounted && accessToken ? (
             <NavButton onClick={handleLogout}>로그아웃</NavButton>
           ) : (
             <NavButton
@@ -69,7 +80,7 @@ export default function Header() {
             <IoClose size={28} />
           </CloseButton>
           <MenuList>
-            {accessToken ? (
+            {mounted && accessToken ? (
               <MenuLink
                 onClick={() => {
                   setMenuOpen(false);
@@ -81,7 +92,7 @@ export default function Header() {
             ) : (
               <></>
             )}
-            {accessToken ? (
+            {mounted && accessToken ? (
               <MenuLink
                 onClick={() => {
                   setMenuOpen(false);
@@ -151,7 +162,7 @@ const Right = styled.div`
   }
 `;
 
-const NavButton = styled.a`
+const NavButton = styled.button`
   background: none;
   border: none;
   color: black;
