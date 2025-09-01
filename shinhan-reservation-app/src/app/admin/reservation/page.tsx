@@ -922,7 +922,7 @@ const DateText = styled.span`
     font-family: 'Pretendard';
     font-style: normal;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 14px;
     letter-spacing: -0.011em;
     color: #191F28;
