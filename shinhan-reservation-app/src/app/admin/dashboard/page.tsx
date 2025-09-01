@@ -4,23 +4,14 @@ import React, { useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import { DashBoardCard } from '@/types/dashBoardAdmin';
-import { getDashboardCardApi } from '@/lib/api/admin/adminDashboard'; // API 함수 경로
+import { getDashboardCardApi, getDashboardReservationsApi } from '@/lib/api/admin/adminDashboard'; // API 함수 경로
+import { RawReservationData, ReservationStatus, ProcessedReservation} from '@/types/dashBoardAdmin';
 
-// --- 타입 정의 ---
-type ReservationStatus = '1차 승인 대기' | '2차 승인 대기' | '최종 승인 완료' | '이용완료' | '긴급' | '신한';
-
-interface Reservation {
-    id: number;
-    date: string; // YYYY-MM-DD
-    time: string; // HH:mm ~ HH:mm
-    user: string;
-    status: ReservationStatus;
-}
 const statusColors: Record<ReservationStatus, string> = {
     '1차 승인 대기': '#FFBB00',
     '2차 승인 대기': '#FF7300',
     '최종 승인 완료': '#34C759',
-    '이용완료': '#8496C5',
+    '이용 완료': '#8496C5',
     '긴급': '#FF0000',
     '신한': '#0046FF',
 };
@@ -70,12 +61,14 @@ const CalendarHeader = ({ date, setDate }: { date: Date, setDate: React.Dispatch
     );
 };
 
-const CalendarGrid = ({ date, reservations }: { date: Date; reservations: Reservation[] }) => {
+const CalendarGrid = ({ date, reservations }: { date: Date; reservations: ProcessedReservation[] }) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    // 캘린더 날짜를 계산하고 `calendarDays`를 정의하는 부분
+    // 이 코드가 return 문 위에 있어야 합니다.
     const calendarDays: (number | null)[] = Array(firstDayOfMonth).fill(null);
     for (let day = 1; day <= daysInMonth; day++) {
         calendarDays.push(day);
@@ -84,30 +77,25 @@ const CalendarGrid = ({ date, reservations }: { date: Date; reservations: Reserv
     while (calendarDays.length % 7 !== 0) {
         calendarDays.push(null);
     }
-
     return (
         <GridWrapper>
-            <GridHeader>
-                {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-                    <DayHeader key={day} isSunday={day === '일'} isSaturday={day === '토'}>{day}</DayHeader>
-                ))}
-            </GridHeader>
+            {/* ... 캘린더 헤더 (요일) */}
             <GridBody>
                 {calendarDays.map((day, index) => {
                     if (day === null) {
                         return <DayCell key={`empty-${index}`} />;
                     }
                     
+                    // 해당 날짜에 대한 예약 목록 필터링
                     const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const dayReservations = reservations.filter(r => r.date === fullDateStr);
-                    const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                    
                     const dayOfWeek = new Date(year, month, day).getDay();
 
                     return (
                         <DayCell key={day}>
                             <DayLabel isSunday={dayOfWeek === 0} isSaturday={dayOfWeek === 6}>
                                 {day}
-                                {isToday && <TodayLabel>오늘</TodayLabel>}
                             </DayLabel>
                             <ReservationsContainer>
                                 {dayReservations.map(res => (
@@ -128,17 +116,32 @@ const CalendarGrid = ({ date, reservations }: { date: Date; reservations: Reserv
 
 // 불필요한 useMediaQuery 훅을 삭제하고 Dashboard 컴포넌트를 정리
 export default function Dashboard() {
-    const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1));
     const [cardData, setCardData] = useState<DashBoardCard[]>([]);
-    // 더미 데이터. API 응답 형식과 맞춰서 테스트용으로 사용하세요.
-    const [reservations, setReservations] = useState<Reservation[]>([
-        { id: 1, date: '2025-08-04', time: '10:00 ~ 11:00', user: '김똘똘', status: '이용완료' },
-        { id: 2, date: '2025-08-05', time: '10:00 ~ 11:00', user: '김똘똘', status: '이용완료' },
-        { id: 3, date: '2025-08-05', time: '13:00 ~ 14:00', user: '장영원', status: '1차 승인 대기' },
-        { id: 4, date: '2025-08-05', time: '15:00 ~ 16:00', user: '오은영', status: '최종 승인 완료' },
-        { id: 5, date: '2025-08-06', time: '10:00 ~ 11:00', user: '김똘똘', status: '2차 승인 대기' },
-        { id: 6, date: '2025-08-06', time: '15:00 ~ 16:00', user: '장영원', status: '2차 승인 대기' },
-    ]);
+
+    // 캘린더의 현재 날짜를 관리하는 상태
+    const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1));
+    // 가공된 예약 데이터를 저장하는 상태
+    const [reservations, setReservations] = useState<ProcessedReservation[]>([]);
+
+    useEffect(() => {
+        const loadReservations = async () => {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            
+            try {
+                // API 호출 (별도 파일에 있는 함수 사용)
+                const rawData: RawReservationData[] = await getDashboardReservationsApi();
+                // API 응답 데이터를 캘린더에 맞게 가공
+                const processedData = processApiData(rawData);
+                setReservations(processedData);
+            } catch (err) {
+                console.error('예약 목록을 불러오는 데 실패했습니다:', err);
+                setReservations([]);
+            }
+        };
+        
+        loadReservations();
+    }, [currentDate]); // currentDate가 변경될 때마다 API 호출
 
     // API 호출 로직을 useEffect로 옮겨서 컴포넌트 마운트 시 한 번만 실행되도록 합니다.
     useEffect(() => {
@@ -163,12 +166,41 @@ export default function Dashboard() {
                 {cardData.map(item => <SummaryCard key={item.label} item={item} />)}
             </SummaryContainer>
             <CalendarSection>
+                {/* 월 변경 핸들러는 CalendarHeader에서 관리 */}
                 <CalendarHeader date={currentDate} setDate={setCurrentDate} />
+                {/* 가공된 reservations 데이터를 CalendarGrid에 전달 */}
                 <CalendarGrid date={currentDate} reservations={reservations} />
             </CalendarSection>
         </DashboardContainer>
     );
 }
+
+// API 응답을 캘린더에 표시할 데이터로 변환하는 함수
+export const processApiData = (rawData: RawReservationData[]): ProcessedReservation[] => {
+    return rawData.map(item => {
+        const fromDate = new Date(item.reservationFrom);
+        const toDate = new Date(item.reservationTo);
+
+        // YYYY-MM-DD 형식의 날짜 추출
+        const date = fromDate.toISOString().split('T')[0];
+
+        // HH:mm 형식의 시간 추출
+        const fromTime = `${String(fromDate.getHours()).padStart(2, '0')}:${String(fromDate.getMinutes()).padStart(2, '0')}`;
+        const toTime = `${String(toDate.getHours()).padStart(2, '0')}:${String(toDate.getMinutes()).padStart(2, '0')}`;
+        const time = `${fromTime} ~ ${toTime}`;
+        
+        // 상태명 매핑 및 긴급/신한 여부 추가 (우선순위: 긴급 > 신한)
+        let status = item.reservationStatusName as ReservationStatus;
+        
+        return {
+            id: item.reservationId,
+            date: date,
+            time: time,
+            user: item.userName,
+            status: status,
+        };
+    });
+};
 
 // --- Styled Components (기존 코드 그대로 유지) ---
 const DayHeader = styled.div<{ isSunday?: boolean, isSaturday?: boolean }>`
