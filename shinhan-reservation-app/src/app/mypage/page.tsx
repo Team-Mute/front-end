@@ -1,17 +1,29 @@
 "use client";
 
 import React, { type ReactNode, useState, useEffect } from "react";
-import { usePathname } from 'next/navigation'; // 현재 경로를 알기 위해 usePathname 임포트
+import { usePathname } from "next/navigation"; // 현재 경로를 알기 위해 usePathname 임포트
 import styled from "@emotion/styled";
 import Link from "next/link";
 import Image from "next/image";
 
-import logoutIcon from "@/styles/icons/logout.svg"; 
+import logoutIcon from "@/styles/icons/logout.svg";
 import MySideBar from "@/components/sideBar";
 
 const ChevronRightIcon = styled(() => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 18L15 12L9 6" stroke="#191F28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M9 18L15 12L9 6"
+      stroke="#191F28"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 ))`
   display: none;
@@ -24,20 +36,16 @@ interface MyPageLayoutProps {
   children: ReactNode;
 }
 
-export default function MyPageLayout({ children }: MyPageLayoutProps) {
-
-
-  return (
-    <MySideBar children={<></>}/>
-  )
+export default function MyPageLayout() {
+  return <MySideBar />;
 }
 
 // --- Styled Components ---
 
 const Wrapper = styled.div`
   display: flex;
-  font-family: 'Pretendard', sans-serif;
-  background-color: #FFFFFF;
+  font-family: "Pretendard", sans-serif;
+  background-color: #ffffff;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -48,14 +56,14 @@ const Sidebar = styled.aside`
   width: 251px;
   padding: 60px;
   flex-shrink: 0;
-  background-color: #FFFFFF;
- height: 100vh;
+  background-color: #ffffff;
+  height: 100vh;
   @media (max-width: 768px) {
     width: 100%;
     padding: 20px;
     box-sizing: border-box;
     height: 100vh;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
   }
 `;
 
@@ -91,14 +99,14 @@ const UserInfo = styled.div`
 const PageTitle = styled.h1`
   font-weight: 600;
   font-size: 20px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 `;
 
 const Greeting = styled.p`
   font-weight: 500;
   font-size: 16px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 `;
 
@@ -122,7 +130,7 @@ const MenuSection = styled.div`
 const MenuTitle = styled.div`
   font-weight: 600;
   font-size: 16px;
-  color: #191F28;
+  color: #191f28;
 `;
 
 const SubMenu = styled.div`
@@ -137,20 +145,20 @@ const SubMenuItem = styled.div`
   align-items: center;
   font-weight: 500;
   font-size: 16px;
-  color: #8C8F93;
+  color: #8c8f93;
   cursor: pointer;
 
   &:hover {
-    color: #191F28;
+    color: #191f28;
   }
 `;
 
 const MenuLink = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
 `;
 
 const LogoutButton = styled.button`
@@ -160,11 +168,11 @@ const LogoutButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  
+
   span {
     font-weight: 500;
     font-size: 16px;
-    color: #191F28;
+    color: #191f28;
   }
 `;
 
@@ -172,7 +180,7 @@ const Content = styled.main`
   flex: 1;
   padding: 2rem;
   background-color: #fff;
-  
+
   @media (max-width: 768px) {
     display: none;
   }

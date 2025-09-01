@@ -1,29 +1,28 @@
 "use client";
 
 import React, { type ReactNode, useState, useEffect } from "react";
-import { usePathname, useRouter } from 'next/navigation'; // 현재 경로를 알기 위해 usePathname 임포트
+import { usePathname, useRouter } from "next/navigation"; // 현재 경로를 알기 위해 usePathname 임포트
 import styled from "@emotion/styled";
 import Link from "next/link";
-import logoutIcon from "@/styles/icons/logout.svg"; 
+import logoutIcon from "@/styles/icons/logout.svg";
 import vectorIcon from "@/styles/icons/vector.svg";
 import { getUserInfoApi } from "@/lib/api/userInfo";
 import { logoutApi } from "@/lib/api/userAuth";
-
 
 interface MyPageLayoutProps {
   children: ReactNode;
 }
 
-export default function MySideBar({ children }: MyPageLayoutProps) {
+export default function MySideBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [userName, setUserName] = useState("사용자");
 
- useEffect(() => {
+  useEffect(() => {
     const checkIsMobile = () => setIsMobile(window.innerWidth <= 768);
     checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
+    window.addEventListener("resize", checkIsMobile);
 
     const fetchUserInfo = async () => {
       try {
@@ -38,23 +37,23 @@ export default function MySideBar({ children }: MyPageLayoutProps) {
 
     fetchUserInfo();
 
-    return () => window.removeEventListener('resize', checkIsMobile);
- }, []);
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
 
- const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       await logoutApi();
-      alert('로그아웃 되었습니다.');
-      router.push('/login'); // 로그아웃 성공 시 로그인 페이지로 이동
+      alert("로그아웃 되었습니다.");
+      router.push("/login"); // 로그아웃 성공 시 로그인 페이지로 이동
     } catch (error) {
-      console.error('로그아웃 실패:', error);
-      alert('로그아웃에 실패했습니다. 다시 시도해주세요.');
+      console.error("로그아웃 실패:", error);
+      alert("로그아웃에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
-//  모바일이면서 예약 페이지 경로일 경우, children(예약 페이지)만 렌더링하고 레이아웃은 렌더링하지 않음
-  if (isMobile && pathname.startsWith('/mypage/reservations')) {
-    return <>{children}</>;
+  //  모바일이면서 예약 페이지 경로일 경우, children(예약 페이지)만 렌더링하고 레이아웃은 렌더링하지 않음
+  if (isMobile && pathname.startsWith("/mypage/reservations")) {
+    return <></>;
   }
 
   return (
@@ -65,7 +64,11 @@ export default function MySideBar({ children }: MyPageLayoutProps) {
             <TopSection>
               <UserInfo>
                 <PageTitle>마이페이지</PageTitle>
-                <Greeting>{userName}님,<br/>안녕하세요.</Greeting>
+                <Greeting>
+                  {userName}님,
+                  <br />
+                  안녕하세요.
+                </Greeting>
               </UserInfo>
 
               <NavMenu>
@@ -101,8 +104,8 @@ export default function MySideBar({ children }: MyPageLayoutProps) {
 
                 <Link href="/mypage/user">
                   <MenuLink>
-                      <MenuTitle>회원정보 관리</MenuTitle>
-                      <VectorLogo />
+                    <MenuTitle>회원정보 관리</MenuTitle>
+                    <VectorLogo />
                   </MenuLink>
                 </Link>
               </NavMenu>
@@ -110,7 +113,7 @@ export default function MySideBar({ children }: MyPageLayoutProps) {
           </MenuContainer>
 
           <LogoutButton onClick={handleLogout}>
-            <StyledLogo/>
+            <StyledLogo />
             <span>로그아웃</span>
           </LogoutButton>
         </SidebarInner>
@@ -130,8 +133,8 @@ const VectorLogo = styled(vectorIcon)`
 
 const Wrapper = styled.div`
   display: flex;
-  font-family: 'Pretendard', sans-serif;
-  background-color: #FFFFFF;
+  font-family: "Pretendard", sans-serif;
+  background-color: #ffffff;
   @media (max-width: 768px) {
     flex-direction: column;
   }
@@ -141,14 +144,14 @@ const Sidebar = styled.aside`
   width: 251px;
   padding: 60px;
   flex-shrink: 0;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
 
   @media (max-width: 768px) {
     width: 100%;
     padding: 20px;
     height: 100vh;
     box-sizing: border-box;
-    background-color: #FFFFFF;
+    background-color: #ffffff;
   }
 `;
 
@@ -180,14 +183,14 @@ const UserInfo = styled.div`
 const PageTitle = styled.h1`
   font-weight: 600;
   font-size: 20px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 `;
 
 const Greeting = styled.p`
   font-weight: 500;
   font-size: 16px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
   line-height: 1.25;
 `;
@@ -212,7 +215,7 @@ const MenuSection = styled.div`
 const MenuTitle = styled.div`
   font-weight: 600;
   font-size: 16px;
-  color: #191F28;
+  color: #191f28;
 `;
 
 const SubMenu = styled.div`
@@ -227,20 +230,20 @@ const SubMenuItem = styled.div`
   align-items: center;
   font-weight: 500;
   font-size: 16px;
-  color: #8C8F93;
+  color: #8c8f93;
   cursor: pointer;
 
   &:hover {
-    color: #191F28;
+    color: #191f28;
   }
 `;
 
 const MenuLink = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
 `;
 
 const LogoutButton = styled.button`
@@ -250,11 +253,11 @@ const LogoutButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  
+
   span {
     font-weight: 500;
     font-size: 16px;
-    color: #191F28;
+    color: #191f28;
   }
 `;
 
@@ -262,7 +265,7 @@ const Content = styled.main`
   flex: 1;
   padding: 2rem;
   background-color: #fff;
-  
+
   @media (max-width: 768px) {
     display: none;
   }

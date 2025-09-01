@@ -6,9 +6,13 @@ import MySideBar from "@/components/sideBar";
 export default function MyPageUserInfo() {
   return (
     <Container>
-      <MySideBar children={<></>}/>
+      <MySideBar />
       <Wrapper>
-        <Title>회원정보 페이지<br/>공사중 입니다.</Title>
+        <Title>
+          회원정보 페이지
+          <br />
+          공사중 입니다.
+        </Title>
       </Wrapper>
     </Container>
   );
@@ -18,16 +22,16 @@ const Container = styled.div`
   display: flex;
   flex-direction: row;
   position: relative;
-`
+`;
 
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
   width: 100%;
-  padding-right:81px;
-  font-family: 'Pretendard', sans-serif;  
-  
+  padding-right: 81px;
+  font-family: "Pretendard", sans-serif;
+
   @media (max-width: 768px) {
     display: flex;
     flex-direction: column;
@@ -47,7 +51,7 @@ const Wrapper = styled.div`
 const Title = styled.h1`
   font-weight: 600;
   font-size: 60px;
-  color: #191F28;
+  color: #191f28;
   margin: 0;
 
   @media (max-width: 768px) {
