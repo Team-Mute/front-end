@@ -35,6 +35,7 @@ export default function HomePage() {
     endDate,
     time,
     facilities,
+    hasGptSearch,
     setFilters,
     clearFilters,
   } = useFilterStore();
@@ -45,6 +46,9 @@ export default function HomePage() {
     { label: "대구", value: "3" },
     { label: "대전", value: "4" },
   ];
+
+  // GPT 검색 사용 여부
+  const [isGptSearch, setIsGptSearch] = useState(false);
 
   // 안내 모달 관리
   const [infoTitle, setInfoTitle] = useState("");
@@ -59,6 +63,7 @@ export default function HomePage() {
   // 모달 적용 핸들러
   const handleApplyPeople = () => {
     setFilters({ capacity: tempCapacity });
+
     setPeopleModalOpen(false);
     // console.log("최종 선택된 인원:", tempCapacity);
   };
@@ -143,6 +148,9 @@ export default function HomePage() {
   // 상태 바뀔 시 리스트 호출
   // 최종 상태가 바뀌면 API 호출
   useEffect(() => {
+    if (isGptSearch) return; // GPT 검색 시 스킵
+    console.log("GPT 검색 아닌 API 호출");
+
     const fetchSpaces = async () => {
       setIsLoading(true);
       try {
@@ -183,11 +191,22 @@ export default function HomePage() {
     };
 
     fetchSpaces();
-  }, [regionId, categoryId, capacity, startDate, endDate, time, facilities]);
+  }, [
+    regionId,
+    categoryId,
+    capacity,
+    startDate,
+    endDate,
+    time,
+    facilities,
+    hasGptSearch,
+  ]);
 
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async () => {
+    setIsGptSearch(true);
+
     setIsLoading(true);
     try {
       const res = await fetch("/api/parse-reservation", {
@@ -204,13 +223,23 @@ export default function HomePage() {
         setIsModalOpen(true);
       }
 
+      const start = new Date(
+        data.startDate.replace(/([+-]\d{2}:\d{2}|Z)$/, "")
+      );
+      const end = new Date(data.endDate.replace(/([+-]\d{2}:\d{2}|Z)$/, ""));
+
       // ✅ (4) Store에 GPT 검색 결과 저장
       setFilters({
         regionId: data.regionId,
         categoryId: data.categoryId,
         capacity: data.people,
-        startDate: data.startDate,
-        endDate: data.endDate,
+
+        startDate: start, // "2025-09-01T23:59:59"
+        endDate: end,
+        time: {
+          start: start.toTimeString().slice(0, 5), // "14:00"
+          end: end.toTimeString().slice(0, 5), // "16:00" 같은 형태
+        },
         facilities: data.tagNames,
         hasGptSearch: true,
       });
@@ -246,6 +275,7 @@ export default function HomePage() {
       setIsModalOpen(true);
     } finally {
       setIsLoading(false);
+      setIsGptSearch(false);
     }
   };
 
@@ -379,63 +409,33 @@ export default function HomePage() {
           {[
             {
               spaceId: 1,
-              spaceName: "강남 미팅룸",
-              spaceDescription: "지하철 2호선 역삼역 인근",
-              spaceCapacity: 20,
+              spaceName: "명동역 3출구 도보 5분",
+              spaceDescription: "명동 신한스퀘어브릿지 지하1층 B3",
+              spaceCapacity: 12,
               categoryName: "미팅룸",
-              tagNames: ["Wi-Fi", "빔프로젝터", "콘센트", "화이트보드"],
+              tagNames: ["Wi-Fi", "콘센트", "방음"],
               location: "서울 강남구 역삼동",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
+              spaceImageUrl: "/images/recommend-dummy1.png",
             },
             {
               spaceId: 2,
-              spaceName: "홍대 행사장",
-              spaceDescription: "젊음의 거리 중심 행사 공간",
-              spaceCapacity: 100,
+              spaceName: "명동역 3출구 도보 5분",
+              spaceDescription: "명동 신한스퀘어브릿지 지하1층 B1",
+              spaceCapacity: 4,
               categoryName: "행사장",
-              tagNames: ["Wi-Fi", "주차", "음료", "음향장비"],
+              tagNames: ["Wi-Fi", "콘센트", "방음"],
               location: "서울 마포구",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
+              spaceImageUrl: "/images/recommend-dummy2.png",
             },
             {
               spaceId: 3,
-              spaceName: "홍대 행사장",
-              spaceDescription: "젊음의 거리 중심 행사 공간",
-              spaceCapacity: 100,
+              spaceName: "명동역 3출구 도보 5분",
+              spaceDescription: "명동 신한스퀘어브릿지 지하1층 2B",
+              spaceCapacity: 8,
               categoryName: "행사장",
-              tagNames: ["Wi-Fi", "주차", "음료", "음향장비"],
+              tagNames: ["Wi-Fi", "TV", "콘센트"],
               location: "서울 마포구",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
-            },
-            {
-              spaceId: 4,
-              spaceName: "홍대 행사장",
-              spaceDescription: "젊음의 거리 중심 행사 공간",
-              spaceCapacity: 100,
-              categoryName: "행사장",
-              tagNames: ["Wi-Fi", "주차", "음료", "음향장비"],
-              location: "서울 마포구",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
-            },
-            {
-              spaceId: 5,
-              spaceName: "홍대 행사장",
-              spaceDescription: "젊음의 거리 중심 행사 공간",
-              spaceCapacity: 100,
-              categoryName: "행사장",
-              tagNames: ["Wi-Fi", "주차", "음료", "음향장비"],
-              location: "서울 마포구",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
-            },
-            {
-              spaceId: 6,
-              spaceName: "홍대 행사장",
-              spaceDescription: "젊음의 거리 중심 행사 공간",
-              spaceCapacity: 100,
-              categoryName: "행사장",
-              tagNames: ["Wi-Fi", "주차", "음료", "음향장비"],
-              location: "서울 마포구",
-              spaceImageUrl: "https://via.placeholder.com/300x200",
+              spaceImageUrl: "/images/recommend-dummy3.png",
             },
           ].map((space) => (
             <SpaceInfoCard key={space.spaceId} {...space} />
