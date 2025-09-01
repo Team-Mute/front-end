@@ -14,10 +14,11 @@ import { getFlagOptions, getRegionOptions, getReservationApi, getStatusOptions, 
 import { FlagOption, Previsit, RegionOption, Reservation, ReservationResponse, ReservationsParams, StatusOption } from "@/types/reservationAdmin";
 import InfoModal from '@/components/modal/InfoModal';
 import BulkApproveModal from '@/components/modal/reservationAdmin/BulkApproveModal';
-import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
+import { formatDate, formatTimeRange, getStatusStyle } from '@/lib/utils/reservationUtils';
 import RejectModal from '@/components/modal/reservationAdmin/RejectModal';
 import DetailModal from '@/components/modal/reservationAdmin/DetailModal';
 import ConfirmModal from '@/components/modal/reservationAdmin/ConfirmModal';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 
 const ReservationManagementPage: React.FC = () => {
     // API 데이터 및 로딩 관련 상태
@@ -290,7 +291,7 @@ const ReservationManagementPage: React.FC = () => {
 
     const approvableReservations = reservations.filter(res => res.isApprovable);
     const isAllApprovableSelected = approvableReservations.length > 0 && selectedItems.length === approvableReservations.length;
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
+   const { adminRoleId } = useAdminAuthStore();
     return (
         <MainContainer>
             <Header>
@@ -314,8 +315,8 @@ const ReservationManagementPage: React.FC = () => {
                         </StyledSelect>
                     </DropdownContainer>
 
-                    {/* 지점 드롭다운도 동일하게 적용 */}
-                    <DropdownContainer>
+                    {/* 지점 드롭 다운은 2차 승인자, master만 적용 */}
+                    { adminRoleId === 0 || adminRoleId === 1 ? (<DropdownContainer>
                         <StyledSelect onChange={(e) => {
                             const value = e.target.value === '' ? null : Number(e.target.value);
                             setSelectedRegionId(value);
@@ -326,7 +327,7 @@ const ReservationManagementPage: React.FC = () => {
                                 <option key={region.regionId} value={region.regionId}>{region.regionName}</option>
                             ))}
                         </StyledSelect>
-                    </DropdownContainer>
+                    </DropdownContainer>) : null}
                     <SearchInputContainer>
                        <SearchInput 
                             type="text" 

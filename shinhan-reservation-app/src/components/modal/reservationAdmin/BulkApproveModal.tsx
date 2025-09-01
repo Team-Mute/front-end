@@ -2,7 +2,7 @@
 import styled from "@emotion/styled";
 import { IoCloseOutline } from "react-icons/io5";
 import Button from "@/components/common/button/Button";
-import { formatDate, formatTimeRange, getStatusStyle } from '@/utils/reservationUtils';
+import { formatDate, formatTimeRange, getStatusStyle } from '@/lib/utils/reservationUtils';
 import { Reservation } from "@/types/reservationAdmin";
 
 // 모달 컴포넌트 props의 타입을 `Reservation`에 맞게 수정
