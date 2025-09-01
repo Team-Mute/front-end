@@ -9,7 +9,6 @@
 import React, { useEffect, useState } from 'react';
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
-import { FaChevronDown } from 'react-icons/fa';
 import { IoCheckmarkSharp } from 'react-icons/io5'; // 체크마크 아이콘 추가
 import { getFlagOptions, getRegionOptions, getReservationApi, getStatusOptions, postApproveReservationsApi, postRejectReservationApi } from '@/lib/api/admin/adminReservation';
 import { FlagOption, Previsit, RegionOption, Reservation, ReservationResponse, ReservationsParams, StatusOption } from "@/types/reservationAdmin";
@@ -23,14 +22,6 @@ import ConfirmModal from '@/components/modal/reservationAdmin/ConfirmModal';
 const ReservationManagementPage: React.FC = () => {
     // API 데이터 및 로딩 관련 상태
     const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // 드롭다운 UI 상태
-    const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-    const [selectedStatus, setSelectedStatus] = useState('예약 상태 전체');
-    const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
-    const [selectedBranch, setSelectedBranch] = useState('지점');
 
     // 페이지네이션 관련 상태
     const [uiCurrentPage, setUiCurrentPage] = useState(1); 
@@ -59,11 +50,6 @@ const ReservationManagementPage: React.FC = () => {
     // 단건 승인
     const [isConfirmApproveModalOpen, setIsConfirmApproveModalOpen] = useState(false);
     const [approveTargetId, setApproveTargetId] = useState<number | null>(null);
-
-    const statusMap = { /* ... */ };
-    const branchMap = { /* ... */ };
-    const statusOptions = Object.keys(statusMap);
-    const branchOptions = Object.keys(branchMap);
 
     // 필터링 옵션 상태
     const [statuses, setStatuses] = useState<StatusOption[]>([]);
@@ -99,10 +85,8 @@ const ReservationManagementPage: React.FC = () => {
         fetchOptions();
     }, []);
 
-        //API 호출 로직을 분리한 함수로 대체
-        const loadReservations = async () => {
-        setIsLoading(true);
-        
+    //API 호출 로직을 분리한 함수로 대체
+    const loadReservations = async () => {
         try {
             const response = await getReservationApi({
                 page: uiCurrentPage,
@@ -118,9 +102,7 @@ const ReservationManagementPage: React.FC = () => {
             setTotalPages(response.totalPages);
         } catch (err) {
             console.error('예약 목록을 불러오는 데 실패했습니다:', err);
-        } finally {
-            setIsLoading(false);
-        }
+        } 
     };
 
     // 의존성 배열에 모든 필터 상태 추가
@@ -130,33 +112,13 @@ const ReservationManagementPage: React.FC = () => {
 
     // UI 핸들러 함수들
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-        // 승인 가능한 모든 예약의 ID만 가져옴
-        const allApprovableIds = approvableReservations.map(res => res.reservationId);
-        setSelectedItems(allApprovableIds);
-    } else {
-        setSelectedItems([]);
-    }
-    };
-    
-    // 수정된 예약 상태 핸들러
-    const handleStatusSelect = (status: string) => {
-        // 'status'가 statusMap의 유효한 키라고 타입 단언
-        setSelectedStatus(status);
-        setSelectedStatusId(statusMap[status as keyof typeof statusMap]);
-        setIsStatusDropdownOpen(false);
-        setUiCurrentPage(1); 
-        loadReservations(); 
-    };
-
-    // 수정된 지점 핸들러
-    const handleBranchSelect = (branch: string) => {
-        // 'branch'가 branchMap의 유효한 키라고 타입 단언
-        setSelectedBranch(branch);
-        setSelectedRegionId(branchMap[branch as keyof typeof branchMap]);
-        setIsBranchDropdownOpen(false);
-        setUiCurrentPage(1); 
-        loadReservations();
+        if (e.target.checked) {
+            // 승인 가능한 모든 예약의 ID만 가져옴
+            const allApprovableIds = approvableReservations.map(res => res.reservationId);
+            setSelectedItems(allApprovableIds);
+        } else {
+            setSelectedItems([]);
+        }
     };
 
     // 페이지 변경 핸들러는 uiCurrentPage 상태만 변경합니다.
@@ -616,34 +578,6 @@ const PageTitle = styled.h1`
     @media (min-width: 768px) {
         font-size: 2rem;
         margin-bottom: 0;
-    }
-`;
-
-const NewReservationButton = styled.button`
-    background-color: #2563eb;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    width: 100%;
-    transition: background-color 0.3s ease;
-    &:hover {
-        background-color: #1d4ed8;
-    }
-    @media (min-width: 768px) {
-        font-size: 1rem;
-        width: auto;
-    }
-`;
-
-const SectionContainer = styled.div`
-    background-color: white;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    @media (min-width: 768px) {
-        padding: 1.5rem;
     }
 `;
 
