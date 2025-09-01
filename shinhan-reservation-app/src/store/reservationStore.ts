@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type FilterStore = {
+type ReservationStore = {
   regionId: number | undefined;
   categoryId: number | undefined;
   capacity: number | undefined;
@@ -8,13 +8,13 @@ type FilterStore = {
   endDate: Date | undefined;
   time: { start: string; end: string } | undefined;
   facilities: string[];
-  hasGptSearch: boolean; // ✅ GPT 검색 여부 플래그
+  hasGptSearch: boolean; // GPT 검색 여부 플래그
 
-  setFilters: (filters: Partial<FilterStore>) => void;
-  clearFilters: () => void;
+  setReservation: (reservation: Partial<ReservationStore>) => void;
+  clearReservation: () => void;
 };
 
-export const useFilterStore = create<FilterStore>((set) => ({
+export const useReservationStore = create<ReservationStore>((set) => ({
   regionId: undefined,
   categoryId: undefined,
   capacity: undefined,
@@ -24,8 +24,9 @@ export const useFilterStore = create<FilterStore>((set) => ({
   facilities: [],
   hasGptSearch: false,
 
-  setFilters: (filters) => set((state) => ({ ...state, ...filters })),
-  clearFilters: () =>
+  setReservation: (reservation) =>
+    set((state) => ({ ...state, ...reservation })),
+  clearReservation: () =>
     set({
       regionId: undefined,
       categoryId: undefined,

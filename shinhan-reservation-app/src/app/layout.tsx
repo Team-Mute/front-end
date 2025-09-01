@@ -22,17 +22,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // 토큰 가져오기 (localStorage, cookie 등)
-
     if (isAdmin) {
-      // 관리자 페이지 접근 시
       if (!adminToken) {
         router.replace("/admin/login");
       } else {
         setAuthorized(true);
       }
     } else {
-      // 사용자 페이지 접근 시
       const publicPaths = [
         "/login",
         "/signup",
@@ -52,36 +48,25 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     }
   }, [pathname, isAdmin, userToken, adminToken, router]);
 
-  // 토큰 체크가 끝날 때까지 아무것도 렌더링하지 않음
   const publicAdminPaths = ["/admin/login"];
-
   const isPublicAdminPath = publicAdminPaths.includes(pathname);
-
-  if (
-    !authorized &&
-    !(isPublicAdminPath || (!isAdmin ? userToken : adminToken))
-  ) {
-    return (
-      <html lang="ko" suppressHydrationWarning>
-        <body>
-          <Global styles={globalStyles} />
-          {isAdmin ? <HeaderAdmin /> : <Header />}
-          <main></main>
-        </body>
-      </html>
-    );
-  }
 
   return (
     <html lang="ko" suppressHydrationWarning>
       <body>
         <Script
           strategy="beforeInteractive"
-          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAOMAP_API_KEY}&autoload=false`}
+          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAOMAP_API_KEY}&autoload=false&libraries=services`}
         />
         <Global styles={globalStyles} />
         {isAdmin ? <HeaderAdmin /> : <Header />}
-        <main>{children}</main>
+        <main>
+          {authorized ||
+          isPublicAdminPath ||
+          (!isAdmin ? userToken : adminToken)
+            ? children
+            : null}
+        </main>
         {!isAdmin && <Footer />}
       </body>
     </html>

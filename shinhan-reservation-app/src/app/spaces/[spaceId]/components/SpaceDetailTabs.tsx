@@ -5,6 +5,7 @@ import styled from "@emotion/styled";
 import colors from "@/styles/theme";
 import { SpaceDetailPayload } from "@/types/space";
 import Map from "./Map";
+import MarkerIcon from "@/styles/icons/marker.svg";
 
 interface Props {
   spaceDetail: SpaceDetailPayload | null;
@@ -69,7 +70,8 @@ export default function SpaceDetailTabs({ spaceDetail }: Props) {
 
       <TabContent ref={infoRef}>
         <SectionTitle>공간 안내</SectionTitle>
-        <p> {spaceDetail?.spaceDescription}</p>
+
+        <p>{spaceDetail?.spaceDescription}</p>
       </TabContent>
 
       <TabContent ref={mapRef}>
@@ -80,7 +82,10 @@ export default function SpaceDetailTabs({ spaceDetail }: Props) {
             "서울특별시 중구 명동10길 52 신한익스페이스"
           }
         />
-        <p>{spaceDetail?.location.addressRoad.split(" - ")[0]?.trim()}</p>
+        <AddressWrapper>
+          <MarkerIcon />
+          <p>{spaceDetail?.location.addressRoad.split(" - ")[0]?.trim()}</p>
+        </AddressWrapper>
       </TabContent>
 
       <TabContent ref={reservationRef}>
@@ -99,7 +104,7 @@ export default function SpaceDetailTabs({ spaceDetail }: Props) {
 const TapWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  background-color: beige;
+  // background-color: beige;
   gap: 0.5rem;
 `;
 const TabHeader = styled.div`
@@ -127,11 +132,17 @@ const TabItem = styled.div<{ active: boolean }>`
 const TabContent = styled.div`
   padding: 3rem 0;
   scroll-margin-top: 60px; /* sticky 탭 높이 만큼 오프셋 */
-  background-color: gray;
+  // background-color: gray;
 `;
 
 const SectionTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 1rem;
+`;
+
+const AddressWrapper = styled.div`
+  margin-top: 1.66rem;
+  display: flex;
+  gap: 0.5rem;
 `;
