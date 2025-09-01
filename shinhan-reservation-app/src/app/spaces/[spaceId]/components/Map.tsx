@@ -6,7 +6,6 @@ interface MapProps {
 }
 
 export default function Map({ addressRoad }: MapProps) {
-  console.log(addressRoad);
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -28,15 +27,11 @@ export default function Map({ addressRoad }: MapProps) {
         if (status === window.kakao.maps.services.Status.OK) {
           const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
 
+          // ✅ 기본 마커만 표시
           const marker = new window.kakao.maps.Marker({
             map,
             position: coords,
           });
-
-          const infowindow = new window.kakao.maps.InfoWindow({
-            content: `<div style="width:150px;text-align:center;padding:6px 0;">우리회사</div>`,
-          });
-          infowindow.open(map, marker);
 
           map.setCenter(coords);
         }

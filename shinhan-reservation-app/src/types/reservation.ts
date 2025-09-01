@@ -12,6 +12,5 @@ export interface ReservationPayload {
   reservationTo: string;
   reservationPurpose: string;
 
-  reservationAttachments: string[];
-  existingAttachments: string[];
+  existingAttachments?: string[];
 }

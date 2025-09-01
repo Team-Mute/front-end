@@ -1,8 +1,6 @@
 // app/spaces/[spaceId]/page.tsx
 "use client";
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
-
 import { useParams } from "next/navigation";
 import { useFilterStore } from "@/store/filterStore";
 import styled from "@emotion/styled";
@@ -10,8 +8,18 @@ import { getDetailSpaceApi } from "@/lib/api/userSpace";
 import Loading from "@/components/common/Loading";
 import colors from "@/styles/theme";
 import { SpaceDetailPayload } from "@/types/space";
-import Tabs from "@/app/admin/space/components/SpaceFormModal/Tabs";
 import SpaceDetailTabs from "./components/SpaceDetailTabs";
+import Calendar from "@/components/Calendar";
+import SelectBox2 from "@/components/common/selectbox/Selectbox2";
+import CapacitySelect from "@/components/dropdownModal/CapacitySelect";
+import { useReservationStore } from "@/store/reservationStore";
+import { getAvailableDatesApi } from "@/lib/api/reservation";
+import { useReservationTimes } from "@/hooks/useReservationTimes";
+import Button from "@/components/common/button/Button";
+import InfoModal from "@/components/modal/InfoModal";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import axiosClient from "@/lib/api/axiosClient";
 
 export default function SpaceDetailPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,20 +27,61 @@ export default function SpaceDetailPage() {
     null
   );
 
+  // 안내 모달
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoContents, setInfoContents] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [activeTab, setActiveTab] = React.useState<"space" | "time">("space");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const { spaceId } = useParams<{ spaceId: string }>();
 
+  const filterStore = useFilterStore();
+  const reservationStore = useReservationStore();
+  const { setReservation } = useReservationStore();
+
+  const [availableDates, setAvailableDates] = useState<number[]>([]);
+
+  const baseDate = reservationStore.startDate || new Date();
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth() + 1;
+  const day = baseDate.getDate();
+
   const {
-    regionId,
-    categoryId,
-    capacity,
-    startDate,
-    endDate,
-    time,
-    facilities,
-    hasGptSearch,
-  } = useFilterStore();
+    reservationTime,
+    startTimeOptions,
+    endTimeOptions,
+    handleSelectTime,
+  } = useReservationTimes({
+    spaceId: Number(spaceId),
+    year,
+    month,
+    day,
+    startDate: reservationStore.startDate?.toISOString() ?? null,
+  });
+
+  // ✅ 페이지 진입 시 reservationStore 초기화
+  useEffect(() => {
+    if (!spaceId) return;
+
+    setReservation({
+      regionId: filterStore.regionId,
+      categoryId: filterStore.categoryId,
+      capacity: filterStore.capacity ?? 1,
+      startDate: filterStore.startDate,
+      endDate: filterStore.endDate,
+      time: filterStore.time,
+      facilities: filterStore.facilities,
+      hasGptSearch: filterStore.hasGptSearch,
+    });
+
+    // startDate가 있다면 캘린더와 이용 가능한 시간 세팅
+    // startDate가 있다면 selectedDate만 세팅
+    if (filterStore.startDate) {
+      setSelectedDate(filterStore.startDate);
+    }
+  }, [spaceId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +89,7 @@ export default function SpaceDetailPage() {
         setIsLoading(true);
         const res = await getDetailSpaceApi(Number(spaceId));
         setSpaceDetail(res); // 응답 전체 저장
+        console.log("공간 디테일 정보", res);
       } catch (err) {
         console.error("🚨 API 호출 에러:", err);
       } finally {
@@ -51,6 +101,94 @@ export default function SpaceDetailPage() {
       fetchData();
     }
   }, [spaceId]);
+
+  // ✅ 예약 가능 날짜 조회
+  useEffect(() => {
+    if (!spaceId) return;
+    const baseDate = reservationStore.startDate || new Date();
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth() + 1;
+
+    getAvailableDatesApi(Number(spaceId), year, month)
+      .then((res) => setAvailableDates(res.availableDays))
+      .catch((err) => console.error(err));
+
+    console.log("이용 가능일", availableDates);
+  }, [reservationStore.startDate]);
+
+  useEffect(() => {
+    console.log("reservationStore 값:", reservationStore);
+  }, [reservationStore]);
+
+  // ✅ 날짜 선택 시 예약 store 반영 + 가능 시간 조회
+  const handleSelectDate = (result: {
+    single?: string;
+    range?: [string, string];
+  }) => {
+    if (!spaceId) return;
+    if (!result.single) return;
+
+    const [year, month, day] = result.single.split(":").map(Number);
+    const selected = new Date(year, month - 1, day);
+
+    // 예약 store 초기화 (시간 초기화)
+    setReservation({
+      startDate: selected,
+      endDate: selected,
+      time: { start: "", end: "" },
+    });
+  };
+
+  // ✅ 인원 변경
+  const handleChangeCapacity = (count: number) => {
+    setReservation({ capacity: count });
+  };
+
+  const isReservable = React.useMemo(() => {
+    const hasStart =
+      reservationStore.time?.start && reservationStore.time.start !== "";
+    const hasEnd =
+      reservationStore.time?.end && reservationStore.time.end !== "";
+
+    return (
+      !!reservationStore.startDate &&
+      hasStart &&
+      hasEnd &&
+      !!reservationStore.capacity &&
+      reservationStore.capacity > 0
+    );
+  }, [
+    reservationStore.startDate?.toISOString(),
+    reservationStore.time?.start,
+    reservationStore.time?.end,
+    reservationStore.capacity,
+  ]);
+
+  const router = useRouter();
+  const { accessToken, setAccessToken } = useAuthStore();
+
+  // ✅ 예약 버튼 핸들러
+  const handleReservationClick = async () => {
+    try {
+      // refresh API 호출
+      const { data } = await axiosClient.post(
+        "/api/auth/refresh",
+        {},
+        { withCredentials: true }
+      );
+
+      // 성공 → 새 토큰 저장
+      setAccessToken(data.accessToken);
+
+      // 예약 페이지로 이동
+      router.push(`/spaces/${spaceId}/reservation`);
+    } catch (err) {
+      // 실패 → 로그인 필요 모달
+      setInfoTitle("로그인 필요");
+      setInfoContents("예약을 진행하려면 로그인이 필요합니다.");
+      setIsModalOpen(true);
+    }
+  };
 
   return (
     <DetailWrapper>
@@ -93,20 +231,84 @@ export default function SpaceDetailPage() {
           </RInfoWrapper>
           <RInfoWrapper>
             <SubTitle>이용날짜</SubTitle>
-            <Value> {startDate?.toString()}</Value>
+            <Value>
+              <Calendar
+                selectedDate={reservationStore.startDate}
+                availableDates={availableDates}
+                onSelectDate={handleSelectDate}
+                onMonthChange={(year, month) => {
+                  getAvailableDatesApi(Number(spaceId), year, month)
+                    .then((res) => setAvailableDates(res.availableDays))
+                    .catch((err) => console.error(err));
+                }}
+              />
+            </Value>
           </RInfoWrapper>
           <RInfoWrapper>
             <SubTitle>이용시간</SubTitle>
             <Value>
-              {time?.start} ~ {time?.end}
+              <TimePickerWrapper>
+                {/* 시작 시간 */}
+                <SelectBox2
+                  options={startTimeOptions}
+                  value={reservationStore.time?.start || ""}
+                  placeholder="시작 시간 선택"
+                  disabled={!reservationStore.startDate} // startDate 없으면 선택 불가
+                  onChange={(opt) => {
+                    // //  수정: 시작 시간을 선택하면 종료 시간을 초기화합니다.
+                    // handleSelectTime(opt, "");
+                    setReservation({ time: { start: opt, end: "" } });
+                  }}
+                />
+
+                <span>~</span>
+
+                {/* 종료 시간 */}
+                <SelectBox2
+                  options={endTimeOptions}
+                  value={reservationStore.time?.end || ""}
+                  placeholder="종료 시간 선택"
+                  disabled={!reservationTime?.start}
+                  onChange={(opt) => {
+                    // // 시작 시간은 기존 값을 유지, 없으면 초기화
+                    const start = reservationStore.time?.start || "";
+                    // handleSelectTime(start, opt);
+                    // ⭐ 명시적으로 end만 업데이트
+                    setReservation({ time: { start: start, end: opt } });
+                  }}
+                />
+              </TimePickerWrapper>
             </Value>
           </RInfoWrapper>
           <RInfoWrapper>
             <SubTitle>이용인원</SubTitle>
-            <Value>{capacity}</Value>
+
+            <Value>
+              <CapacitySelect
+                value={reservationStore.capacity ?? 1}
+                onChange={handleChangeCapacity}
+              />
+            </Value>
           </RInfoWrapper>
+          <ButtonWrapper>
+            <Button
+              type="button"
+              isActive={!!isReservable}
+              onClick={handleReservationClick}
+            >
+              예약하러가기
+            </Button>
+          </ButtonWrapper>
         </ReservationInfo>
       </InfoWrapper>
+      <InfoModal
+        isOpen={isModalOpen}
+        title={infoTitle}
+        subtitle={infoContents}
+        onClose={async () => {
+          setIsModalOpen(false);
+        }}
+      />
     </DetailWrapper>
 
     // <div>
@@ -136,7 +338,7 @@ const DetailWrapper = styled.div`
 
   padding: 0 10.56rem;
 
-  background-color: pink;
+  // background-color: pink;
 
   @media (max-width: 1040px) {
     padding: 0 5%;
@@ -144,7 +346,7 @@ const DetailWrapper = styled.div`
 `;
 
 const ImageWrapper = styled.div`
-  background-color: yellow;
+  // background-color: yellow;
   display: grid;
   grid-template-columns: 1fr 1fr; /* 왼쪽은 넓게, 오른쪽은 좁게 */
   gap: 1rem;
@@ -177,19 +379,19 @@ const EmptyBox = styled.div`
   width: 100%;
   height: 100%;
   border-radius: 0.625rem;
-  background-color: #e0e0e0; /* 연한 회색 */
+  // background-color: #e0e0e0; /* 연한 회색 */
 `;
 
 const InfoWrapper = styled.div`
   margin-top: 2rem;
-  background-color: blue;
+  // background-color: blue;
   display: flex;
   justify-content: space-between;
   gap: 3.91rem;
 `;
 
 const SpaceInfo = styled.div`
-  background-color: green;
+  // background-color: green;
   width: 100%;
 
   display: flex;
@@ -221,7 +423,7 @@ const RInfoWrapper = styled.div`
   flex-direction: column;
 
   padding: 1rem 0;
-  background-color: purple;
+  // background-color: purple;
   gap: 1rem;
 `;
 
@@ -247,7 +449,7 @@ const SpaceSimpleInfoWrapper = styled.div`
   display: flex;
   flex-direction: column;
 
-  background-color: yellow;
+  // background-color: yellow;
 `;
 
 const SpaceTitle = styled.span`
@@ -292,5 +494,16 @@ const SpaceDetailWrapper = styled.div`
   display: flex;
   flex-direction: column;
 
-  background-color: purple;
+  // background-color: purple;
+`;
+
+const TimePickerWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const ButtonWrapper = styled.div`
+  margin: 1.5rem 0;
 `;
