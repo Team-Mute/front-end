@@ -8,7 +8,7 @@ const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const axiosClient = axios.create({
   baseURL: baseURL,
   paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
-  withCredentials: true,
+  withCredentials: true, // 쿠키 전송
 });
 
 axiosClient.interceptors.request.use((config) => {
@@ -23,15 +23,16 @@ axiosClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
-    // refresh 대상이 아닌 401 → 바로 로그아웃
+    // 401, 403 대상이면서 refresh 요청이 아닌 경우
     if (
-      error.response?.status === 401 &&
+      (status === 401 || status === 403) &&
       !originalRequest.url.includes("/auth/login") &&
       !originalRequest.url.includes("/users/signup") &&
       !originalRequest.url.includes("/users/logout") &&
       !originalRequest.url.includes("/sms/") &&
-      !originalRequest.url.includes("/auth/refresh") // refresh 요청 자체도 제외
+      !originalRequest.url.includes("/auth/refresh")
     ) {
       if (!originalRequest._retry) {
         originalRequest._retry = true;
@@ -49,7 +50,7 @@ axiosClient.interceptors.response.use(
           return Promise.reject(err);
         }
       } else {
-        // 이미 refresh 시도한 경우 → 그냥 로그아웃
+        // 이미 retry 시도 → 로그아웃
         useAuthStore.getState().clearAuth();
         window.location.href = "/login";
       }
