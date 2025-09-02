@@ -89,6 +89,14 @@ export default function SpaceDetailPage() {
         setIsLoading(true);
         const res = await getDetailSpaceApi(Number(spaceId));
         setSpaceDetail(res); // 응답 전체 저장
+
+        // 예약 확인 페이지에서 쓰일 데이터
+        setReservation({
+          spaceImageUrl: res.spaceImageUrl,
+          spaceName: res.spaceName,
+          spaceId: res.spaceId,
+        });
+
         console.log("공간 디테일 정보", res);
       } catch (err) {
         console.error("🚨 API 호출 에러:", err);
@@ -171,14 +179,10 @@ export default function SpaceDetailPage() {
   const handleReservationClick = async () => {
     try {
       // refresh API 호출
-      const { data } = await axiosClient.post(
-        "/api/auth/refresh",
-        {},
-        { withCredentials: true }
-      );
-
+      const data = await axiosClient.post("/api/auth/refresh");
+      console.log(data);
       // 성공 → 새 토큰 저장
-      setAccessToken(data.accessToken);
+      setAccessToken(data.data.accessToken);
 
       // 예약 페이지로 이동
       router.push(`/spaces/${spaceId}/reservation`);
@@ -348,10 +352,11 @@ const DetailWrapper = styled.div`
 const ImageWrapper = styled.div`
   // background-color: yellow;
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 왼쪽은 넓게, 오른쪽은 좁게 */
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
   width: 33.6rem
   height: 26.25rem
+
 `;
 
 const MainImg = styled.img`
@@ -388,6 +393,11 @@ const InfoWrapper = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 3.91rem;
+
+  // background-color: pink;
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 const SpaceInfo = styled.div`
