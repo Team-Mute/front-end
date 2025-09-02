@@ -19,13 +19,10 @@ const Button = styled.button<ButtonProps>`
   background-color: ${({ isActive }) =>
     isActive ? colors.maincolor : colors.graycolor10};
   color: ${({ isActive }) => (isActive ? "white" : colors.graycolor100)};
-  cursor: ${({ isActive }) => (isActive ? "pointer" : "default")};
+  cursor: ${({ isActive }) => (isActive ? "pointer" : "not-allowed")};
   font-size: 14px;
   transition: background-color 0.3s ease;
-
-  &:disabled {
-    cursor: not-allowed;
-  }
+  disabled: ${({ isActive }) => (isActive ? "false" : "true")};
 `;
 
 export default Button;
