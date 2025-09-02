@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { getReservationApi, getReservationRejectMsgApi, cancleReservationApi } from '@/lib/api/reservation';
 import ReservationCancelModal from './ReservationCancelModal'; // 새로 만든 모달 임포트
+import ReservationChangeModal from './ReservationChangeModal';
 
 // --- 타입 정의 ---
 interface Previsit {
@@ -61,6 +62,7 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
     const [rejectMessage, setRejectMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false); // 취소 확인 모달 상태
+    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
 
     const isRejected = reservation?.reservationStatusName === '반려';
 
@@ -77,7 +79,17 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
                 const result = resData.reservationStatusName ? resData : { ...resData, reservationStatusName: status };
                 setReservation(result);
                 if (result.reservationStatusName === '반려') {
-                    // ... (반려 사유 로직 동일)
+                    try {
+                        const rejectData = await getReservationRejectMsgApi(reservationId);
+                        setRejectMessage(rejectData.memo || '반려 사유를 불러왔으나 내용이 없습니다.');
+                    } catch (err) {
+                        if ((err as any).response?.status === 404) {
+                            setRejectMessage('등록된 반려 사유가 없습니다.');
+                        } else {
+                            console.error("반려 사유를 가져오는 데 실패했습니다:", err);
+                            setRejectMessage('반려 사유를 불러오는 중 오류가 발생했습니다.');
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("예약 상세 정보를 가져오는 데 실패했습니다:", error);
@@ -99,6 +111,10 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
             console.error('예약 취소 실패:', error);
             alert('예약 취소에 실패했습니다.');
         }
+    };
+
+    const handleOpenChangeModal = () => {
+        setIsChangeModalOpen(true); // 변경 모달 열기
     };
 
     if (!isOpen) return null;
@@ -156,11 +172,11 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
                 return (
                     <>
                         <ActionButton onClick={() => setIsCancelModalOpen(true)}>예약취소</ActionButton>
-                        <PrimaryButton>예약 변경하기</PrimaryButton>
+                        <PrimaryButton onClick={handleOpenChangeModal}>예약 변경하기</PrimaryButton>
                     </>
                 );
             case '예약취소':
-                 return <PrimaryButton>다시 예약하기</PrimaryButton>;
+                 return <PrimaryButton onClick={handleOpenChangeModal}>다시 예약하기</PrimaryButton>;
             default:
                 return null;
         }
@@ -168,7 +184,7 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
 
     return (
         <>
-            <ModalOverlay onClick={() => onClose()}>
+            <ModalOverlay onClick={() => onClose()} style={{ display: isOpen ? 'flex' : 'none' }}>
                 <ModalContainer onClick={(e) => e.stopPropagation()}>
                     <ModalHeader>
                         <ModalTitle>상세보기</ModalTitle>
@@ -193,6 +209,16 @@ export default function ReservationInfoModal({ isOpen, onClose, reservationId, s
                 isOpen={isCancelModalOpen}
                 onClose={() => setIsCancelModalOpen(false)}
                 onConfirm={handleConfirmCancel}
+            />
+            <ReservationChangeModal
+                isOpen={isChangeModalOpen}
+                onClose={(isChanged) => {
+                    setIsChangeModalOpen(false);
+                    if (isChanged) {
+                        onClose(true);
+                    }
+                }}
+                reservationData={reservation}
             />
         </>
     );
