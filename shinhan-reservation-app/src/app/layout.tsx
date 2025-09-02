@@ -14,6 +14,8 @@ import Script from "next/script";
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
+  // [수정] isInvitation 변수 사용
+  const isInvitation = pathname.startsWith("/invitation");
   const router = useRouter();
 
   const userToken = useAuthStore((state) => state.accessToken);
@@ -36,9 +38,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         "/",
         "/detail",
       ];
-
+      
+      // [수정] isInvitation을 공개 경로 조건에 추가
       const isPublicPath =
-        publicPaths.includes(pathname) || /^\/spaces\/\d+$/.test(pathname);
+        publicPaths.includes(pathname) || 
+        /^\/spaces\/\d+$/.test(pathname) ||
+        isInvitation; // 초대장 경로는 항상 public
 
       if (!userToken && !isPublicPath) {
         router.replace("/login");
@@ -46,7 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         setAuthorized(true);
       }
     }
-  }, [pathname, isAdmin, userToken, adminToken, router]);
+  }, [pathname, isAdmin, isInvitation, userToken, adminToken, router]);
 
   const publicAdminPaths = ["/admin/login"];
   const isPublicAdminPath = publicAdminPaths.includes(pathname);
@@ -59,15 +64,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAOMAP_API_KEY}&autoload=false&libraries=services`}
         />
         <Global styles={globalStyles} />
-        {isAdmin ? <HeaderAdmin /> : <Header />}
+
+        {/* [수정] isInvitation이 아닐 때만 헤더 렌더링 */}
+        {!isInvitation && (isAdmin ? <HeaderAdmin /> : <Header />)}
+        
         <main>
           {authorized ||
           isPublicAdminPath ||
+          // 초대장 페이지는 인증 여부와 관계없이 항상 children을 렌더링
+          isInvitation || 
           (!isAdmin ? userToken : adminToken)
             ? children
             : null}
         </main>
-        {!isAdmin && <Footer />}
+
+        {/* [수정] isAdmin과 isInvitation이 모두 아닐 때만 푸터 렌더링 */}
+        {!isAdmin && !isInvitation && <Footer />}
       </body>
     </html>
   );
