@@ -7,6 +7,7 @@ import closeIcon from "@/styles/icons/close.svg";
 import { useRouter } from "next/navigation";
 import { getReservationListApi } from "@/lib/api/reservation";
 import ReservationInfoModal from "@/components/modal/ReservationInfoModal";
+import Loading from "@/components/common/Loading";
 
 // --- API 응답을 위한 타입 정의 ---
 interface Previsit {
@@ -168,7 +169,7 @@ export default function MyPageReservations() {
 
   const renderContent = () => {
     if (isLoading) {
-      return <EmptyState>로딩 중...</EmptyState>;
+      return <Loading isLoading />;
     }
     if (filteredReservations.length === 0) {
       return <EmptyState>예약 내역이 없습니다.</EmptyState>;
@@ -460,11 +461,11 @@ const InfoTop = styled.div`
 `;
 
 const statusStyles = {
-  '진행중': { bg: '#FFF7E8', color: '#FDB01F' },
-  '예약완료': { bg: '#F2FBF8', color: '#34C759' },
-  '이용완료': { bg: '#F0F1F5', color: '#8496C5' },
-  '취소': { bg: '#F3F4F4', color: '#8E8E93' },
-  '반려': { bg: '#FCF2FF', color: '#C800FF' }, // 새로 추가된 반려 스타일
+  진행중: { bg: "#FFF7E8", color: "#FDB01F" },
+  예약완료: { bg: "#F2FBF8", color: "#34C759" },
+  이용완료: { bg: "#F0F1F5", color: "#8496C5" },
+  취소: { bg: "#F3F4F4", color: "#8E8E93" },
+  반려: { bg: "#FCF2FF", color: "#C800FF" }, // 새로 추가된 반려 스타일
 };
 
 const StatusBadge = styled.div<StatusBadgeProps>`
