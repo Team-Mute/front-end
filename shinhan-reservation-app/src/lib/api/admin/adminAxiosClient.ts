@@ -20,10 +20,11 @@ adminAxiosClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
     // 토큰 만료 → refresh 시도
     if (
-      error.response?.status === 401 &&
+      (status === 401 || status === 403) &&
       !originalRequest._retry &&
       !originalRequest.url.includes("/admin/auth/login") &&
       !originalRequest.url.includes("/admin/signup") &&
