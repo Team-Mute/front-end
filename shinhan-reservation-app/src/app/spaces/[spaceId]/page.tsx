@@ -296,6 +296,7 @@ export default function SpaceDetailPage() {
           </RInfoWrapper>
           <ButtonWrapper>
             <Button
+              width={"100%"}
               type="button"
               isActive={!!isReservable}
               onClick={handleReservationClick}
@@ -357,6 +358,11 @@ const ImageWrapper = styled.div`
   width: 33.6rem
   height: 26.25rem
 
+    @media (max-width: 1040px) {
+ display: flex;
+ flex-drection: column;
+  }
+
 `;
 
 const MainImg = styled.img`
@@ -371,6 +377,11 @@ const SubImages = styled.div`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
 `;
 
 const SubImg = styled.img`
@@ -384,10 +395,11 @@ const EmptyBox = styled.div`
   width: 100%;
   height: 100%;
   border-radius: 0.625rem;
-  // background-color: #e0e0e0; /* 연한 회색 */
+  background-color: #e0e0e0; /* 연한 회색 */
 `;
 
 const InfoWrapper = styled.div`
+  width: 100%;
   margin-top: 2rem;
   // background-color: blue;
   display: flex;
@@ -401,6 +413,7 @@ const InfoWrapper = styled.div`
 `;
 
 const SpaceInfo = styled.div`
+  max-width: 40.3rem;
   // background-color: green;
   width: 100%;
 
@@ -410,6 +423,7 @@ const SpaceInfo = styled.div`
 `;
 
 const ReservationInfo = styled.div`
+  max-width: 24rem;
   background-color: white;
   border-radius: 0.75rem;
   border: 1px solid ${colors.graycolor5};
@@ -419,6 +433,10 @@ const ReservationInfo = styled.div`
 
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
 `;
 
 const RTitle = styled.div`
