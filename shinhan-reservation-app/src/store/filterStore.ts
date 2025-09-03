@@ -15,7 +15,7 @@ type FilterStore = {
 };
 
 export const useFilterStore = create<FilterStore>((set) => ({
-  regionId: undefined,
+  regionId: 1,
   categoryId: undefined,
   capacity: undefined,
   startDate: undefined,
