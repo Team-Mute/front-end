@@ -48,6 +48,8 @@ const ContentsWrapper = styled.div`
     display: flex;
     flex-direction: column;
   }
+
+  margin-top: 3rem;
 `;
 
 const StyledLogo = styled(Logo)`
